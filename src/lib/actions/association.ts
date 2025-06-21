@@ -1,25 +1,17 @@
 'use server';
 
 import dbConnect from '@/lib/mongodb';
-import Slug from '@/lib/models/Slug';
 import Association from '@/lib/models/Association';
 import Player from '@/lib/models/Player';
 
-export async function getAssociationBySlug(slug: string) {
+export async function getAssociationData() {
   await dbConnect();
 
   try {
-    // Buscar o slug
-    const slugDoc = await Slug.findOne({ slug, isActive: true }).lean();
-
-    if (!slugDoc) {
-      return null;
-    }
-
-    // Buscar a associação separadamente
-    const association = await Association.findById(
-      slugDoc.associationId
-    ).lean();
+    // Buscar a associação "Porto dos Santos" (única associação)
+    const association = await Association.findOne({
+      name: 'Associação de Porto dos Santos',
+    }).lean();
 
     if (!association) {
       return null;

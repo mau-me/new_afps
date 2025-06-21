@@ -19,16 +19,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang='pt-BR'>
-      <body className={inter.className}>
+    <html lang='pt-BR' suppressHydrationWarning>
+      <body
+        className={`${inter.className} antialiased`}
+        suppressHydrationWarning
+      >
         <Providers>
           <ThemeProvider
             attribute='class'
-            defaultTheme='system'
-            enableSystem
+            defaultTheme='light'
+            enableSystem={false}
             disableTransitionOnChange
           >
-            {children}
+            <div className='min-h-screen bg-background text-foreground'>
+              {children}
+            </div>
             <Toaster />
           </ThemeProvider>
         </Providers>

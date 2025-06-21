@@ -3,7 +3,7 @@
 import type React from 'react';
 
 import { useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,8 +31,6 @@ export default function RegisterPage() {
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const params = useParams();
-  const slug = params.slug as string;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -73,10 +71,7 @@ export default function RegisterPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...formData,
-          slug,
-        }),
+        body: JSON.stringify(formData),
       });
 
       const data = await response.json();
@@ -87,7 +82,7 @@ export default function RegisterPage() {
 
       setSuccess('Conta criada com sucesso! Redirecionando para login...');
       setTimeout(() => {
-        router.push(`/${slug}/login`);
+        router.push('/login');
       }, 2000);
     } catch (error: any) {
       setError(error.message);
@@ -101,7 +96,7 @@ export default function RegisterPage() {
       <div className='w-full max-w-md'>
         <div className='mb-6'>
           <Link
-            href={`/${slug}`}
+            href='/'
             className='inline-flex items-center text-sm text-gray-600 hover:text-gray-900 transition-colors'
           >
             <ArrowLeft className='h-4 w-4 mr-2' />
@@ -208,10 +203,7 @@ export default function RegisterPage() {
             <div className='mt-6 text-center'>
               <p className='text-sm text-gray-600'>
                 Já tem uma conta?{' '}
-                <Link
-                  href={`/${slug}/login`}
-                  className='text-primary hover:underline'
-                >
+                <Link href='/login' className='text-primary hover:underline'>
                   Entre aqui
                 </Link>
               </p>

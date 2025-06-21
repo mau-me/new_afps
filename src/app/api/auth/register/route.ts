@@ -2,15 +2,14 @@ import { type NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import User from '@/lib/models/User';
 import AllowedUser from '@/lib/models/AllowedUser';
-import Slug from '@/lib/models/Slug';
 import { validateCPF } from '@/lib/utils';
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, email, password, cpf, slug } = await request.json();
+    const { name, email, password, cpf } = await request.json();
 
     // Validações básicas
-    if (!name || !email || !password || !cpf || !slug) {
+    if (!name || !email || !password || !cpf) {
       return NextResponse.json(
         { message: 'Todos os campos são obrigatórios' },
         { status: 400 }
@@ -22,15 +21,6 @@ export async function POST(request: NextRequest) {
     }
 
     await dbConnect();
-
-    // Verificar se o slug existe e está ativo
-    const slugDoc = await Slug.findOne({ slug, isActive: true });
-    if (!slugDoc) {
-      return NextResponse.json(
-        { message: 'Associação não encontrada' },
-        { status: 404 }
-      );
-    }
 
     // Verificar se o CPF está na lista de permitidos
     const allowedUser = await AllowedUser.findOne({ cpf, isUsed: false });

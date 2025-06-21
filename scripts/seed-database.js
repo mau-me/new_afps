@@ -49,16 +49,6 @@ async function seedDatabase() {
       'associations'
     );
 
-    const Slug = mongoose.model(
-      'Slug',
-      {
-        slug: String,
-        associationId: mongoose.Schema.Types.ObjectId,
-        isActive: Boolean,
-      },
-      'slugs'
-    );
-
     const AllowedUser = mongoose.model(
       'AllowedUser',
       {
@@ -95,18 +85,6 @@ async function seedDatabase() {
       console.log('✅ Associação criada!');
     }
 
-    // Criar slug
-    const slugExists = await Slug.findOne({ slug: 'porto-dos-santos' });
-    if (!slugExists) {
-      const slug = new Slug({
-        slug: 'porto-dos-santos',
-        associationId: association._id,
-        isActive: true,
-      });
-      await slug.save();
-      console.log('✅ Slug criado: porto-dos-santos');
-    }
-
     // Criar usuário administrador
     const adminExists = await User.findOne({
       email: 'admin@portodossantos.com',
@@ -133,6 +111,7 @@ async function seedDatabase() {
       { cpf: '11122233344', name: 'Maria Oliveira' },
       { cpf: '55566677788', name: 'Carlos Ferreira' },
       { cpf: '99988877766', name: 'Ana Costa' },
+      { cpf: '06468856507', name: 'Mauricio Souza' },
     ];
 
     for (const userData of allowedUsers) {
@@ -151,8 +130,7 @@ async function seedDatabase() {
     console.log('\n🎉 Seed concluído com sucesso!');
     console.log('\n📋 Resumo:');
     console.log('- Associação: Associação de Porto dos Santos');
-    console.log('- Slug: porto-dos-santos');
-    console.log('- URL: http://localhost:3000/porto-dos-santos');
+    console.log('- URL: http://localhost:3000');
     console.log('- Admin: admin@portodossantos.com / admin123');
     console.log(
       '- CPFs permitidos: 12345678901, 98765432100, 11122233344, 55566677788, 99988877766'
