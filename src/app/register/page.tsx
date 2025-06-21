@@ -1,23 +1,24 @@
 'use client';
 
 import type React from 'react';
-
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, ArrowLeft } from 'lucide-react';
-import { validateCPF } from '@/lib/utils';
+import {
+  Loader2,
+  ArrowLeft,
+  Trophy,
+  User,
+  Mail,
+  Lock,
+  CreditCard,
+} from 'lucide-react';
+import { validateCPF, formatCPF } from '@/lib/utils';
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -34,10 +35,20 @@ export default function RegisterPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+
+    // Formatação automática do CPF
+    if (name === 'cpf') {
+      const formattedCPF = formatCPF(value);
+      setFormData((prev) => ({
+        ...prev,
+        [name]: formattedCPF,
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -92,96 +103,143 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className='min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-blue-50 py-12 px-4 sm:px-6 lg:px-8'>
+    <div className='min-h-screen bg-neutral-900 flex items-center justify-center py-xl px-md'>
       <div className='w-full max-w-md'>
-        <div className='mb-6'>
+        {/* Back Button */}
+        <div className='mb-lg'>
           <Link
             href='/'
-            className='inline-flex items-center text-sm text-gray-600 hover:text-gray-900 transition-colors'
+            className='inline-flex items-center text-sm text-neutral-400 hover:text-accent transition-colors'
           >
-            <ArrowLeft className='h-4 w-4 mr-2' />
+            <ArrowLeft className='h-4 w-4 mr-sm' />
             Voltar para home
           </Link>
         </div>
 
+        {/* Header */}
+        <div className='text-center mb-xl'>
+          <div className='flex justify-center mb-md'>
+            <div className='flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-accent'>
+              <Trophy className='h-6 w-6' />
+            </div>
+          </div>
+          <h1 className='text-2xl font-semibold text-accent mb-sm'>
+            Cadastrar-se
+          </h1>
+          <p className='text-neutral-400'>
+            Crie sua conta para acessar o sistema da AFPS
+          </p>
+        </div>
+
         <Card>
-          <CardHeader className='space-y-1'>
-            <CardTitle className='text-2xl text-center'>Cadastrar-se</CardTitle>
-            <CardDescription className='text-center'>
-              Crie sua conta para acessar o sistema
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className='space-y-4'>
-              <div className='space-y-2'>
-                <Label htmlFor='name'>Nome Completo</Label>
-                <Input
-                  id='name'
-                  name='name'
-                  type='text'
-                  placeholder='Seu nome completo'
-                  value={formData.name}
-                  onChange={handleChange}
-                  required
-                />
+          <CardContent className='pt-lg'>
+            <form onSubmit={handleSubmit} className='space-y-lg'>
+              {/* Nome */}
+              <div className='space-y-sm'>
+                <Label htmlFor='name' className='text-accent'>
+                  Nome Completo
+                </Label>
+                <div className='relative'>
+                  <User className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-neutral-400' />
+                  <Input
+                    id='name'
+                    name='name'
+                    type='text'
+                    placeholder='Seu nome completo'
+                    value={formData.name}
+                    onChange={handleChange}
+                    className='pl-10'
+                    required
+                  />
+                </div>
               </div>
 
-              <div className='space-y-2'>
-                <Label htmlFor='cpf'>CPF</Label>
-                <Input
-                  id='cpf'
-                  name='cpf'
-                  type='text'
-                  placeholder='000.000.000-00'
-                  value={formData.cpf}
-                  onChange={handleChange}
-                  required
-                />
-                <p className='text-xs text-gray-500'>
+              {/* CPF */}
+              <div className='space-y-sm'>
+                <Label htmlFor='cpf' className='text-accent'>
+                  CPF
+                </Label>
+                <div className='relative'>
+                  <CreditCard className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-neutral-400' />
+                  <Input
+                    id='cpf'
+                    name='cpf'
+                    type='text'
+                    placeholder='000.000.000-00'
+                    value={formData.cpf}
+                    onChange={handleChange}
+                    className='pl-10'
+                    maxLength={14}
+                    required
+                  />
+                </div>
+                <p className='text-xs text-neutral-400'>
                   Seu CPF deve estar cadastrado pela comissão para criar uma
                   conta
                 </p>
               </div>
 
-              <div className='space-y-2'>
-                <Label htmlFor='email'>Email</Label>
-                <Input
-                  id='email'
-                  name='email'
-                  type='email'
-                  placeholder='seu@email.com'
-                  value={formData.email}
-                  onChange={handleChange}
-                  required
-                />
+              {/* Email */}
+              <div className='space-y-sm'>
+                <Label htmlFor='email' className='text-accent'>
+                  Email
+                </Label>
+                <div className='relative'>
+                  <Mail className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-neutral-400' />
+                  <Input
+                    id='email'
+                    name='email'
+                    type='email'
+                    placeholder='seu@email.com'
+                    value={formData.email}
+                    onChange={handleChange}
+                    className='pl-10'
+                    required
+                  />
+                </div>
               </div>
 
-              <div className='space-y-2'>
-                <Label htmlFor='password'>Senha</Label>
-                <Input
-                  id='password'
-                  name='password'
-                  type='password'
-                  placeholder='Mínimo 6 caracteres'
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                />
+              {/* Senha */}
+              <div className='space-y-sm'>
+                <Label htmlFor='password' className='text-accent'>
+                  Senha
+                </Label>
+                <div className='relative'>
+                  <Lock className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-neutral-400' />
+                  <Input
+                    id='password'
+                    name='password'
+                    type='password'
+                    placeholder='Mínimo 6 caracteres'
+                    value={formData.password}
+                    onChange={handleChange}
+                    className='pl-10'
+                    required
+                  />
+                </div>
               </div>
 
-              <div className='space-y-2'>
-                <Label htmlFor='confirmPassword'>Confirmar Senha</Label>
-                <Input
-                  id='confirmPassword'
-                  name='confirmPassword'
-                  type='password'
-                  placeholder='Confirme sua senha'
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  required
-                />
+              {/* Confirmar Senha */}
+              <div className='space-y-sm'>
+                <Label htmlFor='confirmPassword' className='text-accent'>
+                  Confirmar Senha
+                </Label>
+                <div className='relative'>
+                  <Lock className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-neutral-400' />
+                  <Input
+                    id='confirmPassword'
+                    name='confirmPassword'
+                    type='password'
+                    placeholder='Confirme sua senha'
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    className='pl-10'
+                    required
+                  />
+                </div>
               </div>
 
+              {/* Error/Success Messages */}
               {error && (
                 <Alert variant='destructive'>
                   <AlertDescription>{error}</AlertDescription>
@@ -189,21 +247,35 @@ export default function RegisterPage() {
               )}
 
               {success && (
-                <Alert>
-                  <AlertDescription>{success}</AlertDescription>
+                <Alert className='border-success bg-success/10'>
+                  <AlertDescription className='text-success'>
+                    {success}
+                  </AlertDescription>
                 </Alert>
               )}
 
-              <Button type='submit' className='w-full' disabled={isLoading}>
-                {isLoading && <Loader2 className='mr-2 h-4 w-4 animate-spin' />}
+              {/* Submit Button */}
+              <Button
+                type='submit'
+                className='w-full'
+                size='lg'
+                disabled={isLoading}
+              >
+                {isLoading && (
+                  <Loader2 className='mr-sm h-4 w-4 animate-spin' />
+                )}
                 Criar Conta
               </Button>
             </form>
 
-            <div className='mt-6 text-center'>
-              <p className='text-sm text-gray-600'>
+            {/* Login Link */}
+            <div className='mt-lg text-center'>
+              <p className='text-sm text-neutral-400'>
                 Já tem uma conta?{' '}
-                <Link href='/login' className='text-primary hover:underline'>
+                <Link
+                  href='/login'
+                  className='text-primary hover:text-primary/80 transition-colors font-medium'
+                >
                   Entre aqui
                 </Link>
               </p>

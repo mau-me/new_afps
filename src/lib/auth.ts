@@ -1,7 +1,7 @@
 import CredentialsProvider from 'next-auth/providers/credentials';
 import dbConnect from './mongodb';
 import User from './models/User';
-import { NextAuthOptions } from 'next-auth';
+import type { NextAuthOptions } from 'next-auth';
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -43,6 +43,7 @@ export const authOptions: NextAuthOptions = {
             role: user.role,
           };
         } catch (error) {
+          console.error('Error during authorization:', error);
           return null;
         }
       },
@@ -52,7 +53,13 @@ export const authOptions: NextAuthOptions = {
     strategy: 'jwt',
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({
+      token,
+      user,
+    }: {
+      token: import('next-auth/jwt').JWT;
+      user?: import('next-auth').User;
+    }) {
       if (user) {
         token.role = user.role;
       }

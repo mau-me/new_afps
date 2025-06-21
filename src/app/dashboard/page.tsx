@@ -46,11 +46,9 @@ async function getDashboardData() {
     const monthlyRevenue = transactions
       .filter((t) => t.type === 'entrada')
       .reduce((sum, t) => sum + t.amount, 0);
-
     const monthlyExpenses = transactions
       .filter((t) => t.type === 'saida')
       .reduce((sum, t) => sum + t.amount, 0);
-
     const balance = monthlyRevenue - monthlyExpenses;
 
     return {
@@ -84,71 +82,82 @@ export default async function DashboardPage() {
   const data = await getDashboardData();
 
   return (
-    <div className='min-h-screen bg-background'>
+    <div className='min-h-screen bg-neutral-900'>
       <Navbar />
-      <div className='container py-8'>
+      <div className='container mx-auto max-w-7xl py-xl px-md'>
         {/* Header */}
-        <div className='mb-8'>
+        <div className='mb-xl'>
           <div className='flex items-center justify-between'>
             <div>
-              <h1 className='text-3xl font-bold tracking-tight'>Dashboard</h1>
-              <p className='text-muted-foreground'>
+              <h1 className='text-2xl font-semibold tracking-tight text-accent'>
+                Dashboard
+              </h1>
+              <p className='text-neutral-400'>
                 Bem-vindo,{' '}
-                <span className='font-medium'>{session.user?.name}</span>! Aqui
-                está um resumo da associação.
+                <span className='font-medium text-accent'>
+                  {session.user?.name}
+                </span>
+                ! Aqui está um resumo da associação.
               </p>
             </div>
-            <Badge variant='secondary' className='text-sm'>
+            <Badge
+              variant={
+                session.user?.role === 'comissao' ? 'secondary' : 'outline'
+              }
+              className='text-sm'
+            >
               {session.user?.role === 'comissao' ? 'Comissão' : 'Jogador'}
             </Badge>
           </div>
         </div>
 
         {/* Stats Cards */}
-        <div className='mb-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4'>
+        <div className='mb-xl grid gap-lg md:grid-cols-2 lg:grid-cols-4'>
           <Card>
-            <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
+            <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-sm'>
               <CardTitle className='text-sm font-medium'>
                 Total de Jogadores
               </CardTitle>
-              <Users className='h-4 w-4 text-muted-foreground' />
+              <Users className='h-4 w-4 text-neutral-400' />
             </CardHeader>
             <CardContent>
-              <div className='text-2xl font-bold'>{data.totalPlayers}</div>
-              <p className='text-xs text-muted-foreground'>
-                <span className='text-green-600'>{data.activePlayers}</span>{' '}
+              <div className='text-xl font-semibold text-accent'>
+                {data.totalPlayers}
+              </div>
+              <p className='text-xs text-neutral-400'>
+                <span className='text-success'>{data.activePlayers}</span>{' '}
                 ativos
               </p>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
+            <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-sm'>
               <CardTitle className='text-sm font-medium'>
                 Receita Mensal
               </CardTitle>
-              <DollarSign className='h-4 w-4 text-muted-foreground' />
+              <DollarSign className='h-4 w-4 text-neutral-400' />
             </CardHeader>
             <CardContent>
-              <div className='text-2xl font-bold'>
+              <div className='text-xl font-semibold text-accent'>
                 R${' '}
                 {data.monthlyRevenue.toLocaleString('pt-BR', {
                   minimumFractionDigits: 2,
                 })}
               </div>
-              <p className='text-xs text-muted-foreground'>Este mês</p>
+              <p className='text-xs text-neutral-400'>Este mês</p>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
+            <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-sm'>
               <CardTitle className='text-sm font-medium'>Saldo Atual</CardTitle>
-              <TrendingUp className='h-4 w-4 text-muted-foreground' />
+              <TrendingUp className='h-4 w-4 text-neutral-400' />
             </CardHeader>
             <CardContent>
               <div
-                className={`text-2xl font-bold ${
-                  data.balance >= 0 ? 'text-green-600' : 'text-red-600'
+                className={`text-xl font-semibold ${
+                  data.balance >= 0 ? 'text-success' : 'text-error'
                 }`}
               >
                 R${' '}
@@ -156,36 +165,32 @@ export default async function DashboardPage() {
                   minimumFractionDigits: 2,
                 })}
               </div>
-              <p className='text-xs text-muted-foreground'>
-                Receitas - Despesas
-              </p>
+              <p className='text-xs text-neutral-400'>Receitas - Despesas</p>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-2'>
+            <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-sm'>
               <CardTitle className='text-sm font-medium'>
                 Pagamentos Pendentes
               </CardTitle>
-              <AlertCircle className='h-4 w-4 text-muted-foreground' />
+              <AlertCircle className='h-4 w-4 text-neutral-400' />
             </CardHeader>
             <CardContent>
-              <div className='text-2xl font-bold text-orange-600'>
+              <div className='text-xl font-semibold text-warning'>
                 {data.pendingPayments}
               </div>
-              <p className='text-xs text-muted-foreground'>
-                Mensalidades em aberto
-              </p>
+              <p className='text-xs text-neutral-400'>Mensalidades em aberto</p>
             </CardContent>
           </Card>
         </div>
 
-        <div className='grid gap-6 lg:grid-cols-3'>
+        <div className='grid gap-lg lg:grid-cols-3'>
           {/* Financial Summary */}
           <Card className='lg:col-span-2'>
             <CardHeader>
-              <CardTitle className='flex items-center space-x-2'>
-                <BarChart3 className='h-5 w-5' />
+              <CardTitle className='flex items-center space-x-sm'>
+                <BarChart3 className='h-5 w-5 text-primary' />
                 <span>Resumo Financeiro</span>
               </CardTitle>
               <CardDescription>
@@ -193,16 +198,14 @@ export default async function DashboardPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className='space-y-4'>
-                <div className='flex items-center justify-between rounded-lg border p-4'>
+              <div className='space-y-md'>
+                <div className='flex items-center justify-between rounded border border-neutral-700 p-md'>
                   <div className='space-y-1'>
-                    <p className='text-sm font-medium'>Receitas</p>
-                    <p className='text-xs text-muted-foreground'>
-                      Entradas do mês
-                    </p>
+                    <p className='text-sm font-medium text-accent'>Receitas</p>
+                    <p className='text-xs text-neutral-400'>Entradas do mês</p>
                   </div>
                   <div className='text-right'>
-                    <p className='text-lg font-bold text-green-600'>
+                    <p className='text-lg font-semibold text-success'>
                       + R${' '}
                       {data.monthlyRevenue.toLocaleString('pt-BR', {
                         minimumFractionDigits: 2,
@@ -211,15 +214,13 @@ export default async function DashboardPage() {
                   </div>
                 </div>
 
-                <div className='flex items-center justify-between rounded-lg border p-4'>
+                <div className='flex items-center justify-between rounded border border-neutral-700 p-md'>
                   <div className='space-y-1'>
-                    <p className='text-sm font-medium'>Despesas</p>
-                    <p className='text-xs text-muted-foreground'>
-                      Saídas do mês
-                    </p>
+                    <p className='text-sm font-medium text-accent'>Despesas</p>
+                    <p className='text-xs text-neutral-400'>Saídas do mês</p>
                   </div>
                   <div className='text-right'>
-                    <p className='text-lg font-bold text-red-600'>
+                    <p className='text-lg font-semibold text-error'>
                       - R${' '}
                       {data.monthlyExpenses.toLocaleString('pt-BR', {
                         minimumFractionDigits: 2,
@@ -228,17 +229,17 @@ export default async function DashboardPage() {
                   </div>
                 </div>
 
-                <div className='flex items-center justify-between rounded-lg bg-muted/50 p-4'>
+                <div className='flex items-center justify-between rounded bg-neutral-700/50 p-md'>
                   <div className='space-y-1'>
-                    <p className='text-sm font-bold'>Saldo Final</p>
-                    <p className='text-xs text-muted-foreground'>
-                      Resultado do mês
+                    <p className='text-sm font-semibold text-accent'>
+                      Saldo Final
                     </p>
+                    <p className='text-xs text-neutral-400'>Resultado do mês</p>
                   </div>
                   <div className='text-right'>
                     <p
-                      className={`text-lg font-bold ${
-                        data.balance >= 0 ? 'text-green-600' : 'text-red-600'
+                      className={`text-lg font-semibold ${
+                        data.balance >= 0 ? 'text-success' : 'text-error'
                       }`}
                     >
                       R${' '}
@@ -255,15 +256,15 @@ export default async function DashboardPage() {
           {/* Quick Actions */}
           <Card>
             <CardHeader>
-              <CardTitle className='flex items-center space-x-2'>
-                <Plus className='h-5 w-5' />
+              <CardTitle className='flex items-center space-x-sm'>
+                <Plus className='h-5 w-5 text-primary' />
                 <span>Ações Rápidas</span>
               </CardTitle>
               <CardDescription>
                 Acesso rápido às principais funcionalidades
               </CardDescription>
             </CardHeader>
-            <CardContent className='space-y-3'>
+            <CardContent className='space-y-sm'>
               {session.user?.role === 'comissao' && (
                 <>
                   <Button
@@ -272,7 +273,7 @@ export default async function DashboardPage() {
                     asChild
                   >
                     <Link href='/players/new'>
-                      <UserPlus className='mr-2 h-4 w-4' />
+                      <UserPlus className='mr-sm h-4 w-4' />
                       Cadastrar Jogador
                     </Link>
                   </Button>
@@ -282,7 +283,7 @@ export default async function DashboardPage() {
                     asChild
                   >
                     <Link href='/financial/monthly/new'>
-                      <DollarSign className='mr-2 h-4 w-4' />
+                      <DollarSign className='mr-sm h-4 w-4' />
                       Registrar Mensalidade
                     </Link>
                   </Button>
@@ -292,7 +293,7 @@ export default async function DashboardPage() {
                     asChild
                   >
                     <Link href='/financial/transactions/new'>
-                      <Plus className='mr-2 h-4 w-4' />
+                      <Plus className='mr-sm h-4 w-4' />
                       Nova Transação
                     </Link>
                   </Button>
@@ -304,7 +305,7 @@ export default async function DashboardPage() {
                 asChild
               >
                 <Link href='/reports'>
-                  <FileText className='mr-2 h-4 w-4' />
+                  <FileText className='mr-sm h-4 w-4' />
                   Ver Relatórios
                 </Link>
               </Button>
@@ -314,7 +315,7 @@ export default async function DashboardPage() {
                 asChild
               >
                 <Link href='/players'>
-                  <Users className='mr-2 h-4 w-4' />
+                  <Users className='mr-sm h-4 w-4' />
                   Lista de Jogadores
                 </Link>
               </Button>

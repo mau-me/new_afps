@@ -10,7 +10,8 @@ const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'AFPS - Sistema de Gestão',
-  description: 'Sistema de gestão para Associação de Futebol',
+  description:
+    'Sistema de gestão para Associação de Futebol de Porto dos Santos',
 };
 
 export default function RootLayout({
@@ -19,21 +20,19 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang='pt-BR' suppressHydrationWarning>
+    <html lang='pt-BR' className='dark' suppressHydrationWarning>
       <body
-        className={`${inter.className} antialiased`}
+        className={`${inter.className} antialiased bg-neutral-900 text-accent`}
         suppressHydrationWarning
       >
         <Providers>
           <ThemeProvider
             attribute='class'
-            defaultTheme='light'
+            defaultTheme='dark'
             enableSystem={false}
             disableTransitionOnChange
           >
-            <div className='min-h-screen bg-background text-foreground'>
-              {children}
-            </div>
+            {children}
             <Toaster />
           </ThemeProvider>
         </Providers>

@@ -40,3 +40,25 @@ export function formatCPF(cpf: string): string {
   cpf = cpf.replace(/[^\d]/g, '');
   return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
 }
+
+export function formatPhone(phone: string): string {
+  phone = phone.replace(/[^\d]/g, '');
+  if (phone.length === 11) {
+    return phone.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+  } else if (phone.length === 10) {
+    return phone.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
+  }
+  return phone;
+}
+
+export function formatCurrency(value: number): string {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(value);
+}
+
+export function formatDate(date: Date | string): string {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  return new Intl.DateTimeFormat('pt-BR').format(dateObj);
+}
