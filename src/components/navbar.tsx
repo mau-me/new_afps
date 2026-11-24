@@ -21,7 +21,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import { Menu, Users, LogOut, Home, Wallet } from 'lucide-react';
+import { Menu, Users, LogOut, Home, Wallet, Landmark } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // Adicione aqui novos módulos (Financeiro, Relatórios, Configurações...)
@@ -35,6 +35,12 @@ const navigation = [
     icon: Wallet,
     commissionOnly: true,
   },
+  {
+    name: 'Caixa',
+    href: '/financial',
+    icon: Landmark,
+    commissionOnly: true,
+  },
 ];
 
 export function Navbar() {
@@ -46,8 +52,15 @@ export function Navbar() {
     (item) => !item.commissionOnly || session?.user.role === 'comissao'
   );
 
-  const isActive = (href: string) =>
+  // Só o item de caminho mais específico fica ativo
+  // (em /financial/monthly, "Mensalidades" — e não também "Caixa").
+  const matches = (href: string) =>
     pathname === href || pathname.startsWith(`${href}/`);
+  const activeHref = items
+    .map((item) => item.href)
+    .filter(matches)
+    .sort((a, b) => b.length - a.length)[0];
+  const isActive = (href: string) => href === activeHref;
 
   const wordmark = (
     <span className='heading text-xl tracking-tight text-primary-foreground'>

@@ -7,6 +7,7 @@ import {
   playerSchema,
   referenceMonthSchema,
   registerSchema,
+  transactionSchema,
 } from './validation';
 
 describe('registerSchema', () => {
@@ -114,5 +115,57 @@ describe('paymentDateSchema / referenceMonthSchema / objectIdSchema', () => {
     expect(referenceMonthSchema.safeParse('2026-00').success).toBe(false);
     expect(objectIdSchema.safeParse('a'.repeat(24)).success).toBe(true);
     expect(objectIdSchema.safeParse('123').success).toBe(false);
+  });
+});
+
+describe('transactionSchema', () => {
+  const valid = {
+    type: 'saida',
+    category: 'Arbitragem',
+    amount: '120,00',
+    date: '2026-11-08',
+    description: 'Arbitragem do jogo de domingo',
+  };
+
+  it('converte o valor para centavos', () => {
+    const result = transactionSchema.parse(valid);
+    expect(result.amount).toBe(12000);
+    expect(result.description).toBe('Arbitragem do jogo de domingo');
+  });
+
+  it('exige categoria compatível com o tipo', () => {
+    const result = transactionSchema.safeParse({ ...valid, type: 'entrada' });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(fieldErrors(result.error).category).toBe('Escolha uma categoria da lista');
+    }
+  });
+
+  it('reserva a categoria Mensalidade para os pagamentos automáticos', () => {
+    const result = transactionSchema.safeParse({
+      ...valid,
+      type: 'entrada',
+      category: 'Mensalidade',
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(fieldErrors(result.error).category).toMatch(/página de Mensalidades/);
+    }
+  });
+
+  it('rejeita valor zero, data futura e descrição curta', () => {
+    const result = transactionSchema.safeParse({
+      ...valid,
+      amount: '0',
+      date: '2999-01-01',
+      description: 'ab',
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const errors = fieldErrors(result.error);
+      expect(errors.amount).toBeDefined();
+      expect(errors.date).toBeDefined();
+      expect(errors.description).toBeDefined();
+    }
   });
 });

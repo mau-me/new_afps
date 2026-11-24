@@ -72,6 +72,23 @@ export function dueDateFor(month: string, dueDay: number): Date {
   return new Date(Date.UTC(y, m - 1, dueDay + 1, UTC_OFFSET_HOURS) - 1);
 }
 
+/**
+ * Intervalo do mês no fuso da associação: de 00:00 do dia 1 (local) até
+ * 00:00 do dia 1 do mês seguinte (exclusivo).
+ */
+export function monthRange(month: string): { start: Date; end: Date } {
+  const [y, m] = month.split('-').map(Number);
+  return {
+    start: new Date(Date.UTC(y, m - 1, 1, UTC_OFFSET_HOURS)),
+    end: new Date(Date.UTC(y, m, 1, UTC_OFFSET_HOURS)),
+  };
+}
+
+/** Mês de referência (YYYY-MM) de um instante, no fuso da associação. */
+export function referenceMonthOf(date: Date): string {
+  return todayISO(date).slice(0, 7);
+}
+
 /** Converte YYYY-MM-DD (data local da associação) para meio-dia local. */
 export function localDateToInstant(date: string): Date {
   const match = DATE_RE.exec(date);

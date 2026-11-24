@@ -16,6 +16,9 @@ export interface ITransaction extends mongoose.Document {
   monthlyId?: mongoose.Types.ObjectId;
   /** Quem registrou a transação (auditoria / prestação de contas). */
   createdBy: mongoose.Types.ObjectId;
+  /** Exclusão lógica: o lançamento some do caixa, mas fica no banco. */
+  deletedAt?: Date | null;
+  deletedBy?: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -63,13 +66,25 @@ const transactionSchema = new mongoose.Schema<ITransaction>(
       ref: 'User',
       required: true,
     },
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
+    deletedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
   },
   {
     timestamps: true,
   }
 );
 
-transactionSchema.index({ date: -1 });
+transactionSchema.index({ deletedAt: 1, date: -1 });
+transactionSchema.index({ monthlyId: 1 });
+
+/** Filtro de lançamentos ativos (não excluídos). Use em toda consulta. */
+export const activeFilter = { deletedAt: null } as const;
 
 const Transaction = defineModel<ITransaction>('Transaction', transactionSchema);
 

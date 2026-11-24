@@ -6,7 +6,7 @@ import dbConnect from '@/lib/mongodb';
 import Association from '@/lib/models/Association';
 import Monthly from '@/lib/models/Monthly';
 import Player from '@/lib/models/Player';
-import Transaction from '@/lib/models/Transaction';
+import Transaction, { activeFilter } from '@/lib/models/Transaction';
 import { assertRole } from '@/lib/session';
 import {
   dueDateFor,
@@ -14,6 +14,7 @@ import {
   localDateToInstant,
 } from '@/lib/months';
 import {
+  MONTHLY_CATEGORY,
   fieldErrors,
   monthlySettingsSchema,
   objectIdSchema,
@@ -34,8 +35,6 @@ export type SettingsState = {
   values?: Record<string, string>;
 };
 
-// (Arquivos 'use server' só podem exportar funções assíncronas.)
-const MONTHLY_TRANSACTION_CATEGORY = 'Mensalidade';
 
 function revalidateMonthly() {
   revalidatePath('/financial/monthly');
@@ -206,7 +205,7 @@ export async function registerPayment(
         [
           {
             type: 'entrada',
-            category: MONTHLY_TRANSACTION_CATEGORY,
+            category: MONTHLY_CATEGORY,
             amountCents: monthly.amountCents,
             date: paidAt,
             description: `Mensalidade ${formatReferenceMonth(monthly.referenceMonth)} — ${nickname}`,
@@ -234,9 +233,12 @@ export async function registerPayment(
   }
 }
 
-/** Desfaz um pagamento: volta para "em aberto" e remove a entrada do caixa. */
+/**
+ * Desfaz um pagamento: volta para "em aberto" e tira a entrada do caixa
+ * (exclusão lógica — o lançamento fica no banco para auditoria).
+ */
 export async function undoPayment(monthlyId: string): Promise<ActionResult> {
-  await assertRole('comissao');
+  const session = await assertRole('comissao');
 
   const id = objectIdSchema.safeParse(monthlyId);
   if (!id.success) return { ok: false, message: 'Mensalidade inválida.' };
@@ -253,8 +255,9 @@ export async function undoPayment(monthlyId: string): Promise<ActionResult> {
       );
       if (!monthly) throw new PaymentConflictError();
 
-      await Transaction.deleteMany(
-        { monthlyId: monthly._id },
+      await Transaction.updateMany(
+        { monthlyId: monthly._id, ...activeFilter },
+        { $set: { deletedAt: new Date(), deletedBy: session.user.id } },
         { session: dbSession }
       );
     });

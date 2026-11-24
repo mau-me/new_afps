@@ -1,6 +1,6 @@
 import type React from 'react';
 import Link from 'next/link';
-import { UserPlus, Users, Wallet } from 'lucide-react';
+import { Plus, UserPlus, Users, Wallet } from 'lucide-react';
 import { OverdueDetail, ScoreCell, ScoreStrip } from '@/components/score-strip';
 import { Navbar } from '@/components/navbar';
 import { Button } from '@/components/ui/button';
@@ -8,7 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import dbConnect from '@/lib/mongodb';
 import Player from '@/lib/models/Player';
 import Monthly, { overdueFilter } from '@/lib/models/Monthly';
-import Transaction from '@/lib/models/Transaction';
+import Transaction, { activeFilter } from '@/lib/models/Transaction';
+import { currentReferenceMonth, monthRange } from '@/lib/months';
 import { requireSession } from '@/lib/session';
 import { cn, formatCents } from '@/lib/utils';
 
@@ -22,13 +23,14 @@ async function getPlayerStats() {
 
 async function getFinancialStats() {
   const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  // Mês corrente no fuso da associação (não no fuso do servidor).
+  const { start, end } = monthRange(currentReferenceMonth(now));
 
   const [openPayments, overduePayments, totals] = await Promise.all([
     Monthly.countDocuments({ status: 'em_aberto' }),
     Monthly.countDocuments(overdueFilter(now)),
     Transaction.aggregate<{ _id: 'entrada' | 'saida'; total: number }>([
-      { $match: { date: { $gte: monthStart } } },
+      { $match: { ...activeFilter, date: { $gte: start, $lt: end } } },
       { $group: { _id: '$type', total: { $sum: '$amountCents' } } },
     ]),
   ]);
@@ -125,11 +127,13 @@ export default async function DashboardPage() {
                 value={formatCents(finance.revenueCents)}
                 label='Receita'
                 detail='Entradas do mês'
+                href='/financial?type=entrada'
               />
               <ScoreCell
                 value={formatCents(finance.balanceCents)}
                 label='Saldo'
                 detail='Receitas menos despesas'
+                href='/financial'
                 tone={finance.balanceCents >= 0 ? 'positive' : 'negative'}
               />
               <ScoreCell
@@ -163,6 +167,9 @@ export default async function DashboardPage() {
                 value={formatCents(finance.balanceCents)}
                 strong
               />
+              <Button variant='link' className='mt-2 h-auto px-0' asChild>
+                <Link href='/financial'>Ver lançamentos no caixa</Link>
+              </Button>
             </section>
           )}
 
@@ -180,6 +187,12 @@ export default async function DashboardPage() {
                     <Link href='/financial/monthly'>
                       <Wallet />
                       Mensalidades do mês
+                    </Link>
+                  </Button>
+                  <Button className='justify-start' variant='outline' asChild>
+                    <Link href='/financial/transactions/new'>
+                      <Plus />
+                      Novo lançamento
                     </Link>
                   </Button>
                   <Button className='justify-start' variant='outline' asChild>

@@ -68,6 +68,17 @@ Em **Mensalidades** (só a comissão):
 Uma mensalidade fica **vencida** a partir do dia seguinte ao vencimento, no
 horário da Bahia. Mudar o valor só afeta as mensalidades geradas depois.
 
+## Caixa
+
+Em **Caixa** (só a comissão) ficam todas as entradas e saídas do mês, com o
+saldo do mês e o **saldo em caixa** acumulado até o fim do mês escolhido.
+
+- **Novo lançamento:** entrada ou saída, categoria, valor, data e descrição.
+- Pagamentos de mensalidade entram sozinhos (categoria "Mensalidade") e só
+  podem ser desfeitos na página de Mensalidades.
+- **Excluir** um lançamento manual o tira do caixa, mas ele fica guardado no
+  banco com quem excluiu e quando (trilha de auditoria).
+
 ## Estrutura
 
 ```
@@ -103,6 +114,10 @@ que leva cerca de 1 a 2 minutos. Depois, a suíte inteira roda em segundos.
 - **CPF** é guardado só com dígitos; normalize com `onlyDigits` ou `cpfSchema`.
 - **Server actions** são endpoints públicos: comece toda action com
   `assertRole(...)`.
+- **Lançamentos nunca são apagados:** use exclusão lógica (`deletedAt`/
+  `deletedBy`) e filtre com `activeFilter` de `models/Transaction` em toda
+  consulta ao caixa.
+- Intervalos de mês usam `monthRange` (`lib/months.ts`), no fuso da Bahia.
 - Mensalidade "vencida" não é um status salvo: é `em_aberto` com `dueDate` no
   passado (`overdueFilter`).
 - O limite de tentativas (`lib/rate-limit.ts`) guarda o estado em memória. Em

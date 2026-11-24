@@ -224,10 +224,22 @@ describe('registerPayment / undoPayment', () => {
     const monthly = await Monthly.findById(id).lean();
     expect(monthly?.status).toBe('em_aberto');
     expect(monthly?.paymentDate).toBeUndefined();
-    expect(await Transaction.countDocuments({ monthlyId: id })).toBe(0);
+    // Sai do caixa, mas continua no banco para auditoria.
+    expect(
+      await Transaction.countDocuments({ monthlyId: id, deletedAt: null })
+    ).toBe(0);
+    const removed = await Transaction.findOne({ monthlyId: id }).lean();
+    expect(removed?.deletedAt).toBeInstanceOf(Date);
+    expect(String(removed?.deletedBy)).toBe(adminId);
 
     const undoAgain = await actions.undoPayment(id);
     expect(undoAgain.ok).toBe(false);
+
+    // Pagar de novo gera uma nova entrada ativa.
+    await actions.registerPayment(id, '2026-11-06');
+    expect(
+      await Transaction.countDocuments({ monthlyId: id, deletedAt: null })
+    ).toBe(1);
   });
 });
 

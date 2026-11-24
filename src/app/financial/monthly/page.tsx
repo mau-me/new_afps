@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { FilterTabs } from '@/components/filter-tabs';
+import { MonthNav } from '@/components/month-nav';
 import { Navbar } from '@/components/navbar';
 import {
   OverdueDetail,
@@ -26,15 +27,13 @@ import {
   type MonthlyRow,
 } from '@/lib/data/monthly';
 import {
-  currentReferenceMonth,
   formatLocalDate,
   formatReferenceMonth,
   formatReferenceMonthShort,
   parseMonthParam,
-  shiftMonth,
 } from '@/lib/months';
 import { requireRole } from '@/lib/session';
-import { cn, formatCents } from '@/lib/utils';
+import { formatCents } from '@/lib/utils';
 import { GenerateButton } from './generate-button';
 import { PaymentActions } from './payment-actions';
 import { SettingsForm } from './settings-form';
@@ -65,7 +64,6 @@ export default async function MonthlyPage({
   const params = await searchParams;
   const month = parseMonthParam(params.month);
   const filter = parseMonthlyFilter(params.status);
-  const isCurrentMonth = month === currentReferenceMonth();
 
   const [settings, summary, rows] = await Promise.all([
     getMonthlySettings(),
@@ -103,27 +101,7 @@ export default async function MonthlyPage({
               {monthLabel}
             </p>
           </div>
-          <nav aria-label='Mês' className='flex items-center gap-2'>
-            <Button variant='outline' size='sm' asChild>
-              <Link href={hrefFor({ month: shiftMonth(month, -1) })}>
-                <ChevronLeft />
-                {formatReferenceMonthShort(shiftMonth(month, -1))}
-              </Link>
-            </Button>
-            {!isCurrentMonth && (
-              <Button variant='ghost' size='sm' asChild>
-                <Link href={hrefFor({ month: currentReferenceMonth() })}>
-                  Mês atual
-                </Link>
-              </Button>
-            )}
-            <Button variant='outline' size='sm' asChild>
-              <Link href={hrefFor({ month: shiftMonth(month, 1) })}>
-                {formatReferenceMonthShort(shiftMonth(month, 1))}
-                <ChevronRight />
-              </Link>
-            </Button>
-          </nav>
+          <MonthNav month={month} hrefFor={(m) => hrefFor({ month: m })} />
         </header>
 
         {!settings.hasAssociation && (
@@ -243,31 +221,16 @@ export default async function MonthlyPage({
               </Alert>
             )}
 
-            {/* Filtros por situação */}
-            <nav
-              aria-label='Filtrar por situação'
-              className='mb-4 flex flex-wrap gap-1 border-b'
-            >
-              {filters.map((f) => {
-                const active = f.value === filter;
-                return (
-                  <Link
-                    key={f.value}
-                    href={hrefFor({ status: f.value })}
-                    aria-current={active ? 'page' : undefined}
-                    className={cn(
-                      '-mb-px flex items-center gap-2 border-b-[3px] border-transparent px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground',
-                      active && 'border-primary text-foreground'
-                    )}
-                  >
-                    {f.label}
-                    <span className='rounded-sm bg-muted px-1.5 text-xs tabular-nums'>
-                      {f.count}
-                    </span>
-                  </Link>
-                );
-              })}
-            </nav>
+            <FilterTabs
+              label='Filtrar por situação'
+              className='mb-4'
+              tabs={filters.map((f) => ({
+                label: f.label,
+                count: f.count,
+                href: hrefFor({ status: f.value }),
+                active: f.value === filter,
+              }))}
+            />
 
             <section className='rounded-lg border bg-card'>
               {rows.length === 0 ? (

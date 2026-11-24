@@ -7,7 +7,9 @@ import {
   formatReferenceMonthShort,
   isReferenceMonth,
   localDateToInstant,
+  monthRange,
   parseMonthParam,
+  referenceMonthOf,
   shiftMonth,
   todayISO,
 } from './months';
@@ -76,5 +78,34 @@ describe('data do pagamento', () => {
 
   it('rejeita formato inválido', () => {
     expect(() => localDateToInstant('05/11/2026')).toThrow();
+  });
+});
+
+describe('monthRange', () => {
+  it('vai de 00:00 do dia 1 até 00:00 do mês seguinte, no horário da Bahia', () => {
+    const { start, end } = monthRange('2026-11');
+    expect(start.toISOString()).toBe('2026-11-01T03:00:00.000Z');
+    expect(end.toISOString()).toBe('2026-12-01T03:00:00.000Z');
+  });
+
+  it('atravessa a virada do ano', () => {
+    const { start, end } = monthRange('2026-12');
+    expect(start.toISOString()).toBe('2026-12-01T03:00:00.000Z');
+    expect(end.toISOString()).toBe('2027-01-01T03:00:00.000Z');
+  });
+
+  it('um lançamento do dia 30 à noite pertence ao próprio mês', () => {
+    // 30/11 às 23:30 na Bahia = 01/12 02:30 UTC
+    const late = new Date('2026-12-01T02:30:00Z');
+    const { start, end } = monthRange('2026-11');
+    expect(late >= start && late < end).toBe(true);
+    expect(referenceMonthOf(late)).toBe('2026-11');
+  });
+
+  it('a data de um lançamento (meio-dia local) cai no mês certo', () => {
+    const { start, end } = monthRange('2026-11');
+    const first = localDateToInstant('2026-11-01');
+    const last = localDateToInstant('2026-11-30');
+    expect(first >= start && last < end).toBe(true);
   });
 });
