@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { defineModel } from './define-model';
 
 /**
  * CPFs liberados pela comissão para criar conta no sistema.
@@ -40,8 +41,6 @@ const allowedUserSchema = new mongoose.Schema<IAllowedUser>(
   }
 );
 
-const AllowedUser: mongoose.Model<IAllowedUser> =
-  mongoose.models.AllowedUser ||
-  mongoose.model<IAllowedUser>('AllowedUser', allowedUserSchema);
+const AllowedUser = defineModel<IAllowedUser>('AllowedUser', allowedUserSchema);
 
 export default AllowedUser;

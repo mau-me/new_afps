@@ -21,7 +21,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import { Menu, Users, LogOut, Home } from 'lucide-react';
+import { Menu, Users, LogOut, Home, Wallet } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // Adicione aqui novos módulos (Financeiro, Relatórios, Configurações...)
@@ -29,12 +29,22 @@ import { cn } from '@/lib/utils';
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },
   { name: 'Jogadores', href: '/players', icon: Users },
+  {
+    name: 'Mensalidades',
+    href: '/financial/monthly',
+    icon: Wallet,
+    commissionOnly: true,
+  },
 ];
 
 export function Navbar() {
   const { data: session, status } = useSession();
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
+
+  const items = navigation.filter(
+    (item) => !item.commissionOnly || session?.user.role === 'comissao'
+  );
 
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(`${href}/`);
@@ -69,7 +79,7 @@ export function Navbar() {
 
           {/* Navegação desktop: o item ativo ganha um sublinhado amarelo */}
           <div className='hidden h-14 items-stretch gap-6 md:flex'>
-            {navigation.map((item) => (
+            {items.map((item) => (
               <Link
                 key={item.name}
                 href={item.href}
@@ -106,7 +116,7 @@ export function Navbar() {
                     <SheetTitle>AFPS</SheetTitle>
                   </SheetHeader>
                   <div className='mt-6 flex flex-col gap-1'>
-                    {navigation.map((item) => (
+                    {items.map((item) => (
                       <Button
                         key={item.name}
                         variant='ghost'

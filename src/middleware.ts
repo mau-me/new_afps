@@ -1,24 +1,36 @@
+import { NextResponse } from 'next/server';
 import { withAuth } from 'next-auth/middleware';
 
 /** Rotas exclusivas da comissão. */
-const COMMISSION_ONLY = ['/players/new', '/settings', '/admin'];
+const COMMISSION_ONLY = ['/players/new', '/financial', '/settings', '/admin'];
 
-export default withAuth({
-  callbacks: {
-    authorized: ({ req, token }) => {
-      if (!token) return false;
+function isCommissionOnly(pathname: string) {
+  return COMMISSION_ONLY.some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`)
+  );
+}
 
-      const { pathname } = req.nextUrl;
-      if (COMMISSION_ONLY.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
-        return token.role === 'comissao';
-      }
-      return true;
+export default withAuth(
+  // Logado, mas sem permissão: vai para o dashboard (e não para o login).
+  function middleware(req) {
+    if (
+      isCommissionOnly(req.nextUrl.pathname) &&
+      req.nextauth.token?.role !== 'comissao'
+    ) {
+      return NextResponse.redirect(new URL('/dashboard', req.url));
+    }
+    return NextResponse.next();
+  },
+  {
+    callbacks: {
+      // Sem login: o NextAuth redireciona para /login com callbackUrl.
+      authorized: ({ token }) => Boolean(token),
     },
-  },
-  pages: {
-    signIn: '/login',
-  },
-});
+    pages: {
+      signIn: '/login',
+    },
+  }
+);
 
 // Protege tudo que exige login. As páginas também verificam a sessão
 // (defesa em profundidade) — o middleware não substitui essas checagens.
@@ -26,6 +38,7 @@ export const config = {
   matcher: [
     '/dashboard/:path*',
     '/players/:path*',
+    '/financial/:path*',
     '/settings/:path*',
     '/admin/:path*',
   ],

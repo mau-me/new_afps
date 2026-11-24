@@ -39,7 +39,7 @@ exibida **uma única vez** no terminal.
 | `npm run start`      | Servidor de produção                        |
 | `npm run lint`       | ESLint                                      |
 | `npm run type-check` | Checagem de tipos                           |
-| `npm test`           | Testes unitários                            |
+| `npm test`           | Testes unitários e de integração            |
 | `npm run seed`       | Popula o banco com dados iniciais           |
 
 ## Papéis e fluxo de cadastro
@@ -54,6 +54,20 @@ Ninguém se cadastra sem autorização:
 2. O jogador cria sua conta em **Cadastrar-se** usando o mesmo CPF; a conta é
    vinculada automaticamente à ficha.
 
+## Mensalidades
+
+Em **Mensalidades** (só a comissão):
+
+1. Defina o valor único da mensalidade e o dia de vencimento (1 a 28).
+2. Gere as mensalidades do mês: uma para cada jogador ativo. Gerar de novo é
+   seguro, porque só cria para quem ainda não tem (por exemplo, jogadores
+   cadastrados depois).
+3. Registre cada pagamento com a data em que foi pago. Isso lança a entrada no
+   caixa na mesma transação do banco. "Desfazer" remove as duas coisas.
+
+Uma mensalidade fica **vencida** a partir do dia seguinte ao vencimento, no
+horário da Bahia. Mudar o valor só afeta as mensalidades geradas depois.
+
 ## Estrutura
 
 ```
@@ -66,6 +80,7 @@ src/
   lib/
     actions/            server actions (sempre com checagem de papel)
     data/               consultas de servidor (não expostas como endpoint)
+    months.ts           mês de referência e datas no fuso da Bahia
     models/             schemas do Mongoose
     auth.ts             configuração do NextAuth
     session.ts          helpers requireSession / requireRole / assertRole
@@ -73,6 +88,13 @@ src/
   middleware.ts         proteção de rotas
 scripts/seed-database.js
 ```
+
+## Testes
+
+`npm test` roda os testes unitários e os de integração das server actions. Os
+de integração sobem um MongoDB em memória (`mongodb-memory-server`, com replica
+set para as transações). Na primeira execução ele baixa o binário do MongoDB, o
+que leva cerca de 1 a 2 minutos. Depois, a suíte inteira roda em segundos.
 
 ## Convenções
 

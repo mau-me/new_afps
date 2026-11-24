@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { defineModel } from './define-model';
 import bcrypt from 'bcryptjs';
 import { PASSWORD_MIN_LENGTH } from '@/lib/validation';
 
@@ -76,7 +77,6 @@ userSchema.methods.comparePassword = async function (
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-const User: mongoose.Model<IUser> =
-  mongoose.models.User || mongoose.model<IUser>('User', userSchema);
+const User = defineModel<IUser>('User', userSchema);
 
 export default User;

@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { defineModel } from './define-model';
 
 export const TRANSACTION_TYPES = ['entrada', 'saida'] as const;
 export type TransactionType = (typeof TRANSACTION_TYPES)[number];
@@ -70,8 +71,6 @@ const transactionSchema = new mongoose.Schema<ITransaction>(
 
 transactionSchema.index({ date: -1 });
 
-const Transaction: mongoose.Model<ITransaction> =
-  mongoose.models.Transaction ||
-  mongoose.model<ITransaction>('Transaction', transactionSchema);
+const Transaction = defineModel<ITransaction>('Transaction', transactionSchema);
 
 export default Transaction;

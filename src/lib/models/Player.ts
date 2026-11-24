@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { defineModel } from './define-model';
 import { PLAYER_POSITIONS } from '@/lib/validation';
 
 export { PLAYER_POSITIONS };
@@ -85,7 +86,6 @@ const playerSchema = new mongoose.Schema<IPlayer>(
   }
 );
 
-const Player: mongoose.Model<IPlayer> =
-  mongoose.models.Player || mongoose.model<IPlayer>('Player', playerSchema);
+const Player = defineModel<IPlayer>('Player', playerSchema);
 
 export default Player;

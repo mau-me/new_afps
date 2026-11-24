@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { defineModel } from './define-model';
 
 /** Dados institucionais da associação (documento único). */
 export interface IAssociation extends mongoose.Document {
@@ -16,6 +17,10 @@ export interface IAssociation extends mongoose.Document {
   };
   commission: string[];
   gameSchedule: string;
+  /** Valor único da mensalidade, em centavos. 0 = ainda não configurado. */
+  monthlyFeeCents: number;
+  /** Dia do mês em que a mensalidade vence (1 a 28, vale para todo mês). */
+  dueDay: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -65,14 +70,27 @@ const associationSchema = new mongoose.Schema<IAssociation>(
       type: String,
       default: 'Domingos pela manhã',
     },
+    monthlyFeeCents: {
+      type: Number,
+      default: 0,
+      min: 0,
+      validate: {
+        validator: Number.isInteger,
+        message: 'Valor deve ser um inteiro em centavos',
+      },
+    },
+    dueDay: {
+      type: Number,
+      default: 10,
+      min: 1,
+      max: 28,
+    },
   },
   {
     timestamps: true,
   }
 );
 
-const Association: mongoose.Model<IAssociation> =
-  mongoose.models.Association ||
-  mongoose.model<IAssociation>('Association', associationSchema);
+const Association = defineModel<IAssociation>('Association', associationSchema);
 
 export default Association;

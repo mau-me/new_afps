@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { defineModel } from './define-model';
 
 export const MONTHLY_STATUSES = ['pago', 'em_aberto'] as const;
 export type MonthlyStatus = (typeof MONTHLY_STATUSES)[number];
@@ -73,7 +74,6 @@ export function overdueFilter(now = new Date()) {
   return { status: 'em_aberto' as const, dueDate: { $lt: now } };
 }
 
-const Monthly: mongoose.Model<IMonthly> =
-  mongoose.models.Monthly || mongoose.model<IMonthly>('Monthly', monthlySchema);
+const Monthly = defineModel<IMonthly>('Monthly', monthlySchema);
 
 export default Monthly;

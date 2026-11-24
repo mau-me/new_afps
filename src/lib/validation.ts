@@ -3,7 +3,8 @@
  * Não importe nada de mongoose aqui (este arquivo vai para o bundle do cliente).
  */
 import { z } from 'zod';
-import { onlyDigits, validateCPF } from './utils';
+import { onlyDigits, parseCurrencyToCents, validateCPF } from './utils';
+import { isReferenceMonth, todayISO } from './months';
 
 export const PASSWORD_MIN_LENGTH = 8;
 
@@ -57,6 +58,49 @@ export const playerSchema = z.object({
 });
 
 export type PlayerInput = z.input<typeof playerSchema>;
+
+export const referenceMonthSchema = z
+  .string()
+  .refine(isReferenceMonth, 'Mês de referência inválido');
+
+export const objectIdSchema = z
+  .string()
+  .regex(/^[a-f\d]{24}$/i, 'Identificador inválido');
+
+export const monthlySettingsSchema = z.object({
+  fee: z
+    .string()
+    .transform((v, ctx) => {
+      const cents = parseCurrencyToCents(v.replace(/^R\$\s*/i, ''));
+      if (cents === null || cents <= 0) {
+        ctx.addIssue({
+          code: 'custom',
+          message: 'Informe um valor maior que zero, como 30 ou 30,00',
+        });
+        return z.NEVER;
+      }
+      return cents;
+    }),
+  dueDay: z.coerce
+    .number('Informe o dia do vencimento')
+    .int('Informe um dia entre 1 e 28')
+    .min(1, 'Informe um dia entre 1 e 28')
+    .max(28, 'Informe um dia entre 1 e 28'),
+});
+
+/** Data do pagamento (YYYY-MM-DD), não pode estar no futuro. */
+export const paymentDateSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'Data inválida')
+  .refine((d) => {
+    // Rejeita datas inexistentes como 2026-02-30
+    const parsed = new Date(`${d}T00:00:00Z`);
+    return (
+      !Number.isNaN(parsed.getTime()) &&
+      parsed.toISOString().slice(0, 10) === d
+    );
+  }, 'Data inválida')
+  .refine((d) => d <= todayISO(), 'A data do pagamento não pode ser no futuro');
 
 /** Converte erros do zod em { campo: mensagem } (primeira mensagem por campo). */
 export function fieldErrors(error: z.ZodError): Record<string, string> {

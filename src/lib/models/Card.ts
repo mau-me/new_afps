@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { defineModel } from './define-model';
 
 export const CARD_STATUSES = ['pendente', 'pago'] as const;
 export type CardStatus = (typeof CARD_STATUSES)[number];
@@ -57,7 +58,6 @@ const cardSchema = new mongoose.Schema<ICard>(
   }
 );
 
-const Card: mongoose.Model<ICard> =
-  mongoose.models.Card || mongoose.model<ICard>('Card', cardSchema);
+const Card = defineModel<ICard>('Card', cardSchema);
 
 export default Card;

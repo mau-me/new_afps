@@ -1,6 +1,7 @@
 import type React from 'react';
 import Link from 'next/link';
-import { UserPlus, Users } from 'lucide-react';
+import { UserPlus, Users, Wallet } from 'lucide-react';
+import { OverdueDetail, ScoreCell, ScoreStrip } from '@/components/score-strip';
 import { Navbar } from '@/components/navbar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -42,37 +43,6 @@ async function getFinancialStats() {
     expensesCents,
     balanceCents: revenueCents - expensesCents,
   };
-}
-
-/** Uma célula da faixa de placar: número grande + legenda curta. */
-function ScoreCell({
-  value,
-  label,
-  detail,
-  tone = 'default',
-}: {
-  value: React.ReactNode;
-  label: string;
-  detail?: React.ReactNode;
-  tone?: 'default' | 'positive' | 'negative';
-}) {
-  return (
-    <div className='flex min-w-0 flex-col gap-1 px-4 py-6 sm:px-6'>
-      <span
-        className={cn(
-          'numeral text-2xl sm:text-3xl',
-          tone === 'positive' && 'text-success',
-          tone === 'negative' && 'text-error'
-        )}
-      >
-        {value}
-      </span>
-      <span className='text-sm font-medium'>{label}</span>
-      {detail && (
-        <span className='text-xs text-muted-foreground'>{detail}</span>
-      )}
-    </div>
-  );
 }
 
 function LedgerRow({
@@ -135,18 +105,11 @@ export default async function DashboardPage() {
           </Badge>
         </header>
 
-        {/* Faixa de placar */}
-        <section
-          aria-label='Resumo'
-          // gap-px sobre fundo de borda = filetes entre as células
-          className={cn(
-            'mb-8 grid gap-px overflow-hidden rounded-lg border bg-border [&>*]:bg-card',
-            finance ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-1'
-          )}
-        >
+        <ScoreStrip label='Resumo' columns={finance ? 4 : 1} className='mb-8'>
           <ScoreCell
             value={players.totalPlayers}
             label='Jogadores'
+            href='/players'
             detail={
               <>
                 <span className='font-medium text-success'>
@@ -172,21 +135,12 @@ export default async function DashboardPage() {
               <ScoreCell
                 value={finance.openPayments}
                 label='Mensalidades em aberto'
-                detail={
-                  finance.overduePayments > 0 ? (
-                    <span className='inline-flex items-center gap-1.5'>
-                      <span className='ref-card bg-error' aria-hidden />
-                      {finance.overduePayments} vencida
-                      {finance.overduePayments === 1 ? '' : 's'}
-                    </span>
-                  ) : (
-                    'Nenhuma vencida'
-                  )
-                }
+                href='/financial/monthly?status=em_aberto'
+                detail={<OverdueDetail count={finance.overduePayments} />}
               />
             </>
           )}
-        </section>
+        </ScoreStrip>
 
         <div className='grid gap-8 lg:grid-cols-3'>
           {finance && (
@@ -221,12 +175,20 @@ export default async function DashboardPage() {
             <h2 className='heading mb-4 text-lg'>Atalhos</h2>
             <div className='flex flex-col gap-2'>
               {isCommission && (
-                <Button className='justify-start' asChild>
-                  <Link href='/players/new'>
-                    <UserPlus />
-                    Cadastrar jogador
-                  </Link>
-                </Button>
+                <>
+                  <Button className='justify-start' asChild>
+                    <Link href='/financial/monthly'>
+                      <Wallet />
+                      Mensalidades do mês
+                    </Link>
+                  </Button>
+                  <Button className='justify-start' variant='outline' asChild>
+                    <Link href='/players/new'>
+                      <UserPlus />
+                      Cadastrar jogador
+                    </Link>
+                  </Button>
+                </>
               )}
               <Button className='justify-start' variant='outline' asChild>
                 <Link href='/players'>
