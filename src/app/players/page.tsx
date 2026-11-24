@@ -93,7 +93,12 @@ export default async function PlayersPage() {
                       </span>
                     </TableCell>
                     <TableCell>
-                      <div className='font-semibold'>{p.nickname}</div>
+                      <Link
+                        href={`/players/${String(p._id)}`}
+                        className='font-semibold underline decoration-border underline-offset-4 hover:decoration-primary'
+                      >
+                        {p.nickname}
+                      </Link>
                       {isCommission && (
                         <div className='text-sm text-muted-foreground'>
                           {p.fullName}

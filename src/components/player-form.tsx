@@ -1,9 +1,10 @@
 'use client';
 
+import type React from 'react';
 import { useActionState } from 'react';
 import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
-import { createPlayer, type CreatePlayerState } from '@/lib/actions/players';
+import type { PlayerFormState } from '@/lib/actions/players';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,20 +12,34 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { PLAYER_POSITIONS } from '@/lib/validation';
 import { formatCPF } from '@/lib/utils';
 
-const initialState: CreatePlayerState = {};
+const initialState: PlayerFormState = {};
 
-export function NewPlayerForm() {
-  const [state, formAction, isPending] = useActionState(
-    createPlayer,
-    initialState
-  );
-  const v = state.values ?? {};
+/** Formulário de ficha do jogador, usado para cadastrar e para editar. */
+export function PlayerForm({
+  action,
+  initialValues = {},
+  cpfLocked = false,
+  submitLabel,
+  cancelHref,
+  note,
+}: {
+  action: (state: PlayerFormState, formData: FormData) => Promise<PlayerFormState>;
+  initialValues?: Record<string, string>;
+  /** CPF não editável (ficha já ligada a uma conta). */
+  cpfLocked?: boolean;
+  submitLabel: string;
+  cancelHref: string;
+  note?: React.ReactNode;
+}) {
+  const [state, formAction, isPending] = useActionState(action, initialState);
+  const v = state.values ?? initialValues;
   const err = state.errors ?? {};
 
   const field = (
     name: string,
     label: string,
-    props: React.ComponentProps<typeof Input> = {}
+    props: React.ComponentProps<typeof Input> = {},
+    hint?: string
   ) => (
     <div className='space-y-2'>
       <Label htmlFor={name}>{label}</Label>
@@ -33,14 +48,22 @@ export function NewPlayerForm() {
         name={name}
         defaultValue={v[name]}
         aria-invalid={Boolean(err[name])}
-        aria-describedby={err[name] ? `${name}-error` : undefined}
+        aria-describedby={
+          err[name] ? `${name}-error` : hint ? `${name}-hint` : undefined
+        }
         required
         {...props}
       />
-      {err[name] && (
+      {err[name] ? (
         <p id={`${name}-error`} className='text-sm font-medium text-error'>
           {err[name]}
         </p>
+      ) : (
+        hint && (
+          <p id={`${name}-hint`} className='text-sm text-muted-foreground'>
+            {hint}
+          </p>
+        )
       )}
     </div>
   );
@@ -50,14 +73,23 @@ export function NewPlayerForm() {
       <div className='grid gap-6 sm:grid-cols-2'>
         {field('fullName', 'Nome completo')}
         {field('nickname', 'Apelido')}
-        {field('cpf', 'CPF', {
-          placeholder: '000.000.000-00',
-          inputMode: 'numeric',
-          maxLength: 14,
-          onChange: (e) => {
-            e.currentTarget.value = formatCPF(e.currentTarget.value);
+        {field(
+          'cpf',
+          'CPF',
+          {
+            placeholder: '000.000.000-00',
+            inputMode: 'numeric',
+            maxLength: 14,
+            readOnly: cpfLocked,
+            className: cpfLocked ? 'bg-muted text-muted-foreground' : undefined,
+            onChange: (e) => {
+              e.currentTarget.value = formatCPF(e.currentTarget.value);
+            },
           },
-        })}
+          cpfLocked
+            ? 'Não pode mudar: o jogador já criou a conta com este CPF.'
+            : undefined
+        )}
         {field('birthDate', 'Data de nascimento', { type: 'date' })}
 
         <div className='space-y-2'>
@@ -102,18 +134,17 @@ export function NewPlayerForm() {
         </Alert>
       )}
 
-      <p className='max-w-prose text-sm text-muted-foreground'>
-        Ao cadastrar, o CPF fica liberado para o jogador criar sua própria
-        conta em &quot;Cadastrar-se&quot;.
-      </p>
+      {note && (
+        <p className='max-w-prose text-sm text-muted-foreground'>{note}</p>
+      )}
 
       <div className='flex flex-col-reverse gap-2 border-t pt-6 sm:flex-row sm:justify-end'>
         <Button variant='outline' asChild>
-          <Link href='/players'>Cancelar</Link>
+          <Link href={cancelHref}>Cancelar</Link>
         </Button>
         <Button type='submit' disabled={isPending}>
           {isPending && <Loader2 className='animate-spin' />}
-          Cadastrar jogador
+          {submitLabel}
         </Button>
       </div>
     </form>

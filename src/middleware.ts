@@ -4,9 +4,13 @@ import { withAuth } from 'next-auth/middleware';
 /** Rotas exclusivas da comissão. */
 const COMMISSION_ONLY = ['/players/new', '/financial', '/settings', '/admin'];
 
+/** Edição de ficha: /players/<id>/edit */
+const PLAYER_EDIT = /^\/players\/[^/]+\/edit\/?$/;
+
 function isCommissionOnly(pathname: string) {
-  return COMMISSION_ONLY.some(
-    (p) => pathname === p || pathname.startsWith(`${p}/`)
+  return (
+    PLAYER_EDIT.test(pathname) ||
+    COMMISSION_ONLY.some((p) => pathname === p || pathname.startsWith(`${p}/`))
   );
 }
 

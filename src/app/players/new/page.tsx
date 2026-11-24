@@ -1,6 +1,7 @@
 import { Navbar } from '@/components/navbar';
 import { requireRole } from '@/lib/session';
-import { NewPlayerForm } from './new-player-form';
+import { PlayerForm } from '@/components/player-form';
+import { createPlayer } from '@/lib/actions/players';
 
 export default async function NewPlayerPage() {
   await requireRole('comissao');
@@ -16,7 +17,12 @@ export default async function NewPlayerPage() {
           </p>
         </header>
         <section className='rounded-lg border bg-card p-6 md:p-8'>
-          <NewPlayerForm />
+          <PlayerForm
+            action={createPlayer}
+            submitLabel='Cadastrar jogador'
+            cancelHref='/players'
+            note='Ao cadastrar, o CPF fica liberado para o jogador criar a própria conta em "Cadastrar-se".'
+          />
         </section>
       </main>
     </div>
