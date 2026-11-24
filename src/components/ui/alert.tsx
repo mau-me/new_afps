@@ -4,18 +4,18 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 const alertVariants = cva(
-  'relative w-full rounded border p-md [&>svg~*]:pl-7 [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground',
+  'relative w-full rounded-md border border-l-4 px-4 py-2 text-foreground [&>svg~*]:pl-7 [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-3 [&>svg]:text-foreground',
   {
     variants: {
       variant: {
-        default: 'bg-neutral-800 border-neutral-700 text-accent',
+        default: 'border-border bg-card',
         destructive:
-          'border-error/50 bg-error/10 text-error [&>svg]:text-error',
+          'border-error/30 border-l-error bg-error/5 [&>svg]:text-error',
         success:
-          'border-success/50 bg-success/10 text-success [&>svg]:text-success',
+          'border-success/30 border-l-success bg-success/5 [&>svg]:text-success',
         warning:
-          'border-warning/50 bg-warning/10 text-warning [&>svg]:text-warning',
-        info: 'border-info/50 bg-info/10 text-info [&>svg]:text-info',
+          'border-warning/60 border-l-warning bg-warning/10 [&>svg]:text-foreground',
+        info: 'border-info/30 border-l-info bg-info/5 [&>svg]:text-info',
       },
     },
     defaultVariants: {

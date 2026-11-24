@@ -1,328 +1,243 @@
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/lib/auth';
-import { redirect } from 'next/navigation';
+import type React from 'react';
+import Link from 'next/link';
+import { UserPlus, Users } from 'lucide-react';
 import { Navbar } from '@/components/navbar';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import {
-  Users,
-  DollarSign,
-  TrendingUp,
-  AlertCircle,
-  Plus,
-  BarChart3,
-  FileText,
-  UserPlus,
-} from 'lucide-react';
 import dbConnect from '@/lib/mongodb';
 import Player from '@/lib/models/Player';
-import Monthly from '@/lib/models/Monthly';
+import Monthly, { overdueFilter } from '@/lib/models/Monthly';
 import Transaction from '@/lib/models/Transaction';
-import Link from 'next/link';
+import { requireSession } from '@/lib/session';
+import { cn, formatCents } from '@/lib/utils';
 
-async function getDashboardData() {
-  await dbConnect();
+async function getPlayerStats() {
+  const [totalPlayers, activePlayers] = await Promise.all([
+    Player.countDocuments(),
+    Player.countDocuments({ isActive: true }),
+  ]);
+  return { totalPlayers, activePlayers };
+}
 
-  try {
-    const [totalPlayers, activePlayers, pendingPayments, transactions] =
-      await Promise.all([
-        Player.countDocuments(),
-        Player.countDocuments({ isActive: true }),
-        Monthly.countDocuments({ status: { $in: ['em_aberto', 'vencido'] } }),
-        Transaction.find({
-          date: {
-            $gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
-          },
-        }).lean(),
-      ]);
+async function getFinancialStats() {
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const monthlyRevenue = transactions
-      .filter((t) => t.type === 'entrada')
-      .reduce((sum, t) => sum + t.amount, 0);
-    const monthlyExpenses = transactions
-      .filter((t) => t.type === 'saida')
-      .reduce((sum, t) => sum + t.amount, 0);
-    const balance = monthlyRevenue - monthlyExpenses;
+  const [openPayments, overduePayments, totals] = await Promise.all([
+    Monthly.countDocuments({ status: 'em_aberto' }),
+    Monthly.countDocuments(overdueFilter(now)),
+    Transaction.aggregate<{ _id: 'entrada' | 'saida'; total: number }>([
+      { $match: { date: { $gte: monthStart } } },
+      { $group: { _id: '$type', total: { $sum: '$amountCents' } } },
+    ]),
+  ]);
 
-    return {
-      totalPlayers,
-      activePlayers,
-      pendingPayments,
-      monthlyRevenue,
-      monthlyExpenses,
-      balance,
-    };
-  } catch (error) {
-    console.error('Erro ao buscar dados do dashboard:', error);
-    return {
-      totalPlayers: 0,
-      activePlayers: 0,
-      pendingPayments: 0,
-      monthlyRevenue: 0,
-      monthlyExpenses: 0,
-      balance: 0,
-    };
-  }
+  const revenueCents = totals.find((t) => t._id === 'entrada')?.total ?? 0;
+  const expensesCents = totals.find((t) => t._id === 'saida')?.total ?? 0;
+
+  return {
+    openPayments,
+    overduePayments,
+    revenueCents,
+    expensesCents,
+    balanceCents: revenueCents - expensesCents,
+  };
+}
+
+/** Uma célula da faixa de placar: número grande + legenda curta. */
+function ScoreCell({
+  value,
+  label,
+  detail,
+  tone = 'default',
+}: {
+  value: React.ReactNode;
+  label: string;
+  detail?: React.ReactNode;
+  tone?: 'default' | 'positive' | 'negative';
+}) {
+  return (
+    <div className='flex min-w-0 flex-col gap-1 px-4 py-6 sm:px-6'>
+      <span
+        className={cn(
+          'numeral text-2xl sm:text-3xl',
+          tone === 'positive' && 'text-success',
+          tone === 'negative' && 'text-error'
+        )}
+      >
+        {value}
+      </span>
+      <span className='text-sm font-medium'>{label}</span>
+      {detail && (
+        <span className='text-xs text-muted-foreground'>{detail}</span>
+      )}
+    </div>
+  );
+}
+
+function LedgerRow({
+  label,
+  value,
+  strong,
+  className,
+}: {
+  label: string;
+  value: string;
+  strong?: boolean;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        'flex items-baseline justify-between gap-4 py-2',
+        strong && 'border-t-2 border-foreground pt-4',
+        className
+      )}
+    >
+      <span className={cn('text-sm', strong && 'font-semibold')}>{label}</span>
+      <span
+        className={cn(
+          'tabular-nums',
+          strong ? 'numeral text-xl' : 'text-base font-medium'
+        )}
+      >
+        {value}
+      </span>
+    </div>
+  );
 }
 
 export default async function DashboardPage() {
-  const session = await getServerSession(authOptions);
+  const session = await requireSession();
+  const isCommission = session.user.role === 'comissao';
 
-  if (!session) {
-    redirect('/login');
-  }
+  await dbConnect();
+  const [players, finance] = await Promise.all([
+    getPlayerStats(),
+    isCommission ? getFinancialStats() : Promise.resolve(null),
+  ]);
 
-  const data = await getDashboardData();
+  const firstName = session.user.name?.split(' ')[0];
 
   return (
-    <div className='min-h-screen bg-neutral-900'>
+    <div className='min-h-screen'>
       <Navbar />
-      <div className='container mx-auto max-w-7xl py-xl px-md'>
-        {/* Header */}
-        <div className='mb-xl'>
-          <div className='flex items-center justify-between'>
-            <div>
-              <h1 className='text-2xl font-semibold tracking-tight text-accent'>
-                Dashboard
-              </h1>
-              <p className='text-neutral-400'>
-                Bem-vindo,{' '}
-                <span className='font-medium text-accent'>
-                  {session.user?.name}
-                </span>
-                ! Aqui está um resumo da associação.
-              </p>
-            </div>
-            <Badge
-              variant={
-                session.user?.role === 'comissao' ? 'secondary' : 'outline'
-              }
-              className='text-sm'
-            >
-              {session.user?.role === 'comissao' ? 'Comissão' : 'Jogador'}
-            </Badge>
+      <main className='mx-auto max-w-6xl px-4 py-8 md:py-12'>
+        <header className='mb-8 flex flex-wrap items-end justify-between gap-4'>
+          <div>
+            <h1 className='heading text-xl md:text-2xl'>Olá, {firstName}</h1>
+            <p className='mt-1 text-muted-foreground'>
+              Resumo da associação neste mês.
+            </p>
           </div>
-        </div>
+          <Badge variant={isCommission ? 'default' : 'outline'}>
+            {isCommission ? 'Comissão' : 'Jogador'}
+          </Badge>
+        </header>
 
-        {/* Stats Cards */}
-        <div className='mb-xl grid gap-lg md:grid-cols-2 lg:grid-cols-4'>
-          <Card>
-            <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-sm'>
-              <CardTitle className='text-sm font-medium'>
-                Total de Jogadores
-              </CardTitle>
-              <Users className='h-4 w-4 text-neutral-400' />
-            </CardHeader>
-            <CardContent>
-              <div className='text-xl font-semibold text-accent'>
-                {data.totalPlayers}
-              </div>
-              <p className='text-xs text-neutral-400'>
-                <span className='text-success'>{data.activePlayers}</span>{' '}
+        {/* Faixa de placar */}
+        <section
+          aria-label='Resumo'
+          // gap-px sobre fundo de borda = filetes entre as células
+          className={cn(
+            'mb-8 grid gap-px overflow-hidden rounded-lg border bg-border [&>*]:bg-card',
+            finance ? 'grid-cols-2 lg:grid-cols-4' : 'grid-cols-1'
+          )}
+        >
+          <ScoreCell
+            value={players.totalPlayers}
+            label='Jogadores'
+            detail={
+              <>
+                <span className='font-medium text-success'>
+                  {players.activePlayers}
+                </span>{' '}
                 ativos
+              </>
+            }
+          />
+          {finance && (
+            <>
+              <ScoreCell
+                value={formatCents(finance.revenueCents)}
+                label='Receita'
+                detail='Entradas do mês'
+              />
+              <ScoreCell
+                value={formatCents(finance.balanceCents)}
+                label='Saldo'
+                detail='Receitas menos despesas'
+                tone={finance.balanceCents >= 0 ? 'positive' : 'negative'}
+              />
+              <ScoreCell
+                value={finance.openPayments}
+                label='Mensalidades em aberto'
+                detail={
+                  finance.overduePayments > 0 ? (
+                    <span className='inline-flex items-center gap-1.5'>
+                      <span className='ref-card bg-error' aria-hidden />
+                      {finance.overduePayments} vencida
+                      {finance.overduePayments === 1 ? '' : 's'}
+                    </span>
+                  ) : (
+                    'Nenhuma vencida'
+                  )
+                }
+              />
+            </>
+          )}
+        </section>
+
+        <div className='grid gap-8 lg:grid-cols-3'>
+          {finance && (
+            <section className='rounded-lg border bg-card p-6 lg:col-span-2'>
+              <h2 className='heading text-lg'>Movimentação do mês</h2>
+              <p className='mb-4 text-sm text-muted-foreground'>
+                Entradas e saídas registradas desde o dia 1º.
               </p>
-            </CardContent>
-          </Card>
+              <LedgerRow
+                label='Receitas'
+                value={`+ ${formatCents(finance.revenueCents)}`}
+                className='border-b border-dashed'
+              />
+              <LedgerRow
+                label='Despesas'
+                value={`− ${formatCents(finance.expensesCents)}`}
+              />
+              <LedgerRow
+                label='Saldo do mês'
+                value={formatCents(finance.balanceCents)}
+                strong
+              />
+            </section>
+          )}
 
-          <Card>
-            <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-sm'>
-              <CardTitle className='text-sm font-medium'>
-                Receita Mensal
-              </CardTitle>
-              <DollarSign className='h-4 w-4 text-neutral-400' />
-            </CardHeader>
-            <CardContent>
-              <div className='text-xl font-semibold text-accent'>
-                R${' '}
-                {data.monthlyRevenue.toLocaleString('pt-BR', {
-                  minimumFractionDigits: 2,
-                })}
-              </div>
-              <p className='text-xs text-neutral-400'>Este mês</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-sm'>
-              <CardTitle className='text-sm font-medium'>Saldo Atual</CardTitle>
-              <TrendingUp className='h-4 w-4 text-neutral-400' />
-            </CardHeader>
-            <CardContent>
-              <div
-                className={`text-xl font-semibold ${
-                  data.balance >= 0 ? 'text-success' : 'text-error'
-                }`}
-              >
-                R${' '}
-                {data.balance.toLocaleString('pt-BR', {
-                  minimumFractionDigits: 2,
-                })}
-              </div>
-              <p className='text-xs text-neutral-400'>Receitas - Despesas</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className='flex flex-row items-center justify-between space-y-0 pb-sm'>
-              <CardTitle className='text-sm font-medium'>
-                Pagamentos Pendentes
-              </CardTitle>
-              <AlertCircle className='h-4 w-4 text-neutral-400' />
-            </CardHeader>
-            <CardContent>
-              <div className='text-xl font-semibold text-warning'>
-                {data.pendingPayments}
-              </div>
-              <p className='text-xs text-neutral-400'>Mensalidades em aberto</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className='grid gap-lg lg:grid-cols-3'>
-          {/* Financial Summary */}
-          <Card className='lg:col-span-2'>
-            <CardHeader>
-              <CardTitle className='flex items-center space-x-sm'>
-                <BarChart3 className='h-5 w-5 text-primary' />
-                <span>Resumo Financeiro</span>
-              </CardTitle>
-              <CardDescription>
-                Movimentação financeira do mês atual
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className='space-y-md'>
-                <div className='flex items-center justify-between rounded border border-neutral-700 p-md'>
-                  <div className='space-y-1'>
-                    <p className='text-sm font-medium text-accent'>Receitas</p>
-                    <p className='text-xs text-neutral-400'>Entradas do mês</p>
-                  </div>
-                  <div className='text-right'>
-                    <p className='text-lg font-semibold text-success'>
-                      + R${' '}
-                      {data.monthlyRevenue.toLocaleString('pt-BR', {
-                        minimumFractionDigits: 2,
-                      })}
-                    </p>
-                  </div>
-                </div>
-
-                <div className='flex items-center justify-between rounded border border-neutral-700 p-md'>
-                  <div className='space-y-1'>
-                    <p className='text-sm font-medium text-accent'>Despesas</p>
-                    <p className='text-xs text-neutral-400'>Saídas do mês</p>
-                  </div>
-                  <div className='text-right'>
-                    <p className='text-lg font-semibold text-error'>
-                      - R${' '}
-                      {data.monthlyExpenses.toLocaleString('pt-BR', {
-                        minimumFractionDigits: 2,
-                      })}
-                    </p>
-                  </div>
-                </div>
-
-                <div className='flex items-center justify-between rounded bg-neutral-700/50 p-md'>
-                  <div className='space-y-1'>
-                    <p className='text-sm font-semibold text-accent'>
-                      Saldo Final
-                    </p>
-                    <p className='text-xs text-neutral-400'>Resultado do mês</p>
-                  </div>
-                  <div className='text-right'>
-                    <p
-                      className={`text-lg font-semibold ${
-                        data.balance >= 0 ? 'text-success' : 'text-error'
-                      }`}
-                    >
-                      R${' '}
-                      {data.balance.toLocaleString('pt-BR', {
-                        minimumFractionDigits: 2,
-                      })}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Quick Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle className='flex items-center space-x-sm'>
-                <Plus className='h-5 w-5 text-primary' />
-                <span>Ações Rápidas</span>
-              </CardTitle>
-              <CardDescription>
-                Acesso rápido às principais funcionalidades
-              </CardDescription>
-            </CardHeader>
-            <CardContent className='space-y-sm'>
-              {session.user?.role === 'comissao' && (
-                <>
-                  <Button
-                    className='w-full justify-start'
-                    variant='outline'
-                    asChild
-                  >
-                    <Link href='/players/new'>
-                      <UserPlus className='mr-sm h-4 w-4' />
-                      Cadastrar Jogador
-                    </Link>
-                  </Button>
-                  <Button
-                    className='w-full justify-start'
-                    variant='outline'
-                    asChild
-                  >
-                    <Link href='/financial/monthly/new'>
-                      <DollarSign className='mr-sm h-4 w-4' />
-                      Registrar Mensalidade
-                    </Link>
-                  </Button>
-                  <Button
-                    className='w-full justify-start'
-                    variant='outline'
-                    asChild
-                  >
-                    <Link href='/financial/transactions/new'>
-                      <Plus className='mr-sm h-4 w-4' />
-                      Nova Transação
-                    </Link>
-                  </Button>
-                </>
+          <section
+            className={cn(
+              'rounded-lg border bg-card p-6',
+              !finance && 'lg:col-span-3'
+            )}
+          >
+            <h2 className='heading mb-4 text-lg'>Atalhos</h2>
+            <div className='flex flex-col gap-2'>
+              {isCommission && (
+                <Button className='justify-start' asChild>
+                  <Link href='/players/new'>
+                    <UserPlus />
+                    Cadastrar jogador
+                  </Link>
+                </Button>
               )}
-              <Button
-                className='w-full justify-start'
-                variant='outline'
-                asChild
-              >
-                <Link href='/reports'>
-                  <FileText className='mr-sm h-4 w-4' />
-                  Ver Relatórios
-                </Link>
-              </Button>
-              <Button
-                className='w-full justify-start'
-                variant='outline'
-                asChild
-              >
+              <Button className='justify-start' variant='outline' asChild>
                 <Link href='/players'>
-                  <Users className='mr-sm h-4 w-4' />
-                  Lista de Jogadores
+                  <Users />
+                  Ver jogadores
                 </Link>
               </Button>
-            </CardContent>
-          </Card>
+            </div>
+          </section>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

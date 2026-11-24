@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,118 +21,108 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import {
-  Menu,
-  Users,
-  DollarSign,
-  FileText,
-  Settings,
-  LogOut,
-  Home,
-  Trophy,
-} from 'lucide-react';
+import { Menu, Users, LogOut, Home } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+// Adicione aqui novos módulos (Financeiro, Relatórios, Configurações...)
+// conforme as páginas forem criadas, para não haver links quebrados.
+const navigation = [
+  { name: 'Dashboard', href: '/dashboard', icon: Home },
+  { name: 'Jogadores', href: '/players', icon: Users },
+];
 
 export function Navbar() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const [isOpen, setIsOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const pathname = usePathname();
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const isActive = (href: string) =>
+    pathname === href || pathname.startsWith(`${href}/`);
 
-  if (!mounted) {
+  const wordmark = (
+    <span className='heading text-xl tracking-tight text-primary-foreground'>
+      AFPS
+    </span>
+  );
+
+  if (status === 'loading') {
     return (
-      <nav className='sticky top-0 z-50 w-full border-b border-neutral-700 bg-neutral-900/95 backdrop-blur supports-[backdrop-filter]:bg-neutral-900/60'>
-        <div className='container mx-auto flex h-16 max-w-7xl items-center justify-between px-md'>
-          <div className='flex items-center space-x-md'>
-            <div className='flex h-8 w-8 items-center justify-center rounded bg-primary text-accent'>
-              <Trophy className='h-4 w-4' />
-            </div>
-            <span className='text-xl font-semibold text-accent'>AFPS</span>
-          </div>
-          <div className='flex items-center space-x-md'>
-            <div className='h-8 w-8 animate-pulse rounded-full bg-neutral-700' />
-          </div>
+      <nav className='sticky top-0 z-50 w-full bg-primary'>
+        <div className='mx-auto flex h-14 max-w-6xl items-center justify-between px-4'>
+          {wordmark}
+          <div className='h-9 w-9 animate-pulse rounded-full bg-primary-foreground/20' />
         </div>
       </nav>
     );
   }
 
-  const navigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: Home },
-    { name: 'Jogadores', href: '/players', icon: Users },
-    { name: 'Financeiro', href: '/financial', icon: DollarSign },
-    { name: 'Relatórios', href: '/reports', icon: FileText },
-  ];
-
-  const adminNavigation = [
-    ...navigation,
-    { name: 'Configurações', href: '/settings', icon: Settings },
-  ];
-
-  const userNavigation =
-    session?.user?.role === 'comissao' ? adminNavigation : navigation;
-
   return (
-    <nav className='sticky top-0 z-50 w-full border-b border-neutral-700 bg-neutral-900/95 backdrop-blur supports-[backdrop-filter]:bg-neutral-900/60'>
-      <div className='container mx-auto flex h-16 max-w-7xl items-center justify-between px-md'>
-        <div className='flex items-center space-x-md'>
-          <Link href='/dashboard' className='flex items-center space-x-md'>
-            <div className='flex h-8 w-8 items-center justify-center rounded bg-primary text-accent'>
-              <Trophy className='h-4 w-4' />
-            </div>
-            <span className='text-xl font-semibold text-accent'>AFPS</span>
+    <nav className='sticky top-0 z-50 w-full bg-primary text-primary-foreground'>
+      <div className='mx-auto flex h-14 max-w-6xl items-center justify-between px-4'>
+        <div className='flex items-center gap-8'>
+          <Link
+            href='/dashboard'
+            className='rounded-sm focus-visible:outline-primary-foreground'
+          >
+            {wordmark}
           </Link>
 
-          {/* Desktop Navigation */}
-          <div className='hidden md:ml-lg md:flex md:space-x-sm'>
-            {userNavigation.map((item) => (
-              <Button key={item.name} variant='ghost' size='sm' asChild>
-                <Link href={item.href} className='flex items-center space-x-xs'>
-                  <item.icon className='h-4 w-4' />
-                  <span>{item.name}</span>
-                </Link>
-              </Button>
+          {/* Navegação desktop: o item ativo ganha um sublinhado amarelo */}
+          <div className='hidden h-14 items-stretch gap-6 md:flex'>
+            {navigation.map((item) => (
+              <Link
+                key={item.name}
+                href={item.href}
+                aria-current={isActive(item.href) ? 'page' : undefined}
+                className={cn(
+                  'flex items-center border-b-[3px] border-transparent pt-[3px] text-sm font-medium text-primary-foreground/75 transition-colors hover:text-primary-foreground focus-visible:outline-primary-foreground',
+                  isActive(item.href) &&
+                    'border-warning text-primary-foreground'
+                )}
+              >
+                {item.name}
+              </Link>
             ))}
           </div>
         </div>
 
-        <div className='flex items-center space-x-md'>
+        <div className='flex items-center gap-2'>
           {session ? (
             <>
-              {/* Mobile menu button */}
+              {/* Menu mobile */}
               <Sheet open={isOpen} onOpenChange={setIsOpen}>
                 <SheetTrigger asChild>
-                  <Button variant='ghost' size='icon' className='md:hidden'>
-                    <Menu className='h-5 w-5' />
+                  <Button
+                    variant='ghost'
+                    size='icon'
+                    className='text-primary-foreground hover:bg-primary-foreground/10 focus-visible:outline-primary-foreground md:hidden'
+                  >
+                    <Menu className='!size-5' />
                     <span className='sr-only'>Abrir menu</span>
                   </Button>
                 </SheetTrigger>
-                <SheetContent
-                  side='left'
-                  className='w-64 bg-neutral-800 border-neutral-700'
-                >
+                <SheetContent side='left' className='w-72 p-6'>
                   <SheetHeader>
-                    <SheetTitle className='text-accent'>
-                      Menu de Navegação
-                    </SheetTitle>
+                    <SheetTitle>AFPS</SheetTitle>
                   </SheetHeader>
-                  <div className='mt-lg flex flex-col space-y-sm'>
-                    {userNavigation.map((item) => (
+                  <div className='mt-6 flex flex-col gap-1'>
+                    {navigation.map((item) => (
                       <Button
                         key={item.name}
                         variant='ghost'
-                        className='justify-start'
+                        className={cn(
+                          'justify-start text-base font-medium',
+                          isActive(item.href) && 'bg-accent'
+                        )}
                         asChild
                         onClick={() => setIsOpen(false)}
                       >
                         <Link
                           href={item.href}
-                          className='flex items-center space-x-sm'
+                          aria-current={isActive(item.href) ? 'page' : undefined}
                         >
-                          <item.icon className='h-4 w-4' />
-                          <span>{item.name}</span>
+                          <item.icon />
+                          {item.name}
                         </Link>
                       </Button>
                     ))}
@@ -139,46 +130,39 @@ export function Navbar() {
                 </SheetContent>
               </Sheet>
 
-              {/* User menu */}
+              {/* Menu do usuário */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant='ghost'
-                    className='relative h-8 w-8 rounded-full'
+                    className='relative h-9 w-9 rounded-full p-0 hover:bg-transparent focus-visible:outline-primary-foreground'
                   >
-                    <Avatar className='h-8 w-8'>
-                      <AvatarImage
-                        src='/placeholder-user.jpg'
-                        alt={session.user?.name || ''}
-                      />
-                      <AvatarFallback className='bg-primary text-accent'>
+                    <Avatar className='h-9 w-9 ring-2 ring-primary-foreground/30'>
+                      <AvatarFallback className='bg-warning font-semibold text-foreground'>
                         {session.user?.name?.charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
+                    <span className='sr-only'>Abrir menu da conta</span>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  className='w-56 bg-neutral-800 border-neutral-700'
-                  align='end'
-                  forceMount
-                >
+                <DropdownMenuContent className='w-60' align='end' forceMount>
                   <DropdownMenuLabel className='font-normal'>
-                    <div className='flex flex-col space-y-1'>
-                      <p className='text-sm font-medium leading-none text-accent'>
+                    <div className='flex flex-col gap-1'>
+                      <p className='text-sm font-semibold leading-tight'>
                         {session.user?.name}
                       </p>
-                      <p className='text-xs leading-none text-neutral-400'>
+                      <p className='text-xs leading-tight text-muted-foreground'>
                         {session.user?.email}
                       </p>
-                      <p className='text-xs leading-none text-neutral-400 capitalize'>
-                        {session.user?.role}
+                      <p className='text-xs leading-tight text-muted-foreground'>
+                        {session.user.role === 'comissao' ? 'Comissão' : 'Jogador'}
                       </p>
                     </div>
                   </DropdownMenuLabel>
-                  <DropdownMenuSeparator className='bg-neutral-700' />
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem
-                    onClick={() => signOut()}
-                    className='text-accent hover:bg-neutral-700'
+                    onClick={() => signOut({ callbackUrl: '/' })}
+                    className='py-2'
                   >
                     <LogOut className='mr-2 h-4 w-4' />
                     <span>Sair</span>
@@ -187,7 +171,11 @@ export function Navbar() {
               </DropdownMenu>
             </>
           ) : (
-            <Button asChild>
+            <Button
+              asChild
+              variant='secondary'
+              size='sm'
+            >
               <Link href='/login'>Entrar</Link>
             </Button>
           )}

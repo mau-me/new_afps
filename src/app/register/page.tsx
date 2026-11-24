@@ -7,18 +7,11 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import {
-  Loader2,
-  ArrowLeft,
-  Trophy,
-  User,
-  Mail,
-  Lock,
-  CreditCard,
-} from 'lucide-react';
-import { validateCPF, formatCPF } from '@/lib/utils';
+import { Loader2 } from 'lucide-react';
+import { AuthShell } from '@/components/auth-shell';
+import { formatCPF } from '@/lib/utils';
+import { PASSWORD_MIN_LENGTH, registerSchema } from '@/lib/validation';
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -64,14 +57,9 @@ export default function RegisterPage() {
       return;
     }
 
-    if (formData.password.length < 6) {
-      setError('A senha deve ter pelo menos 6 caracteres');
-      setIsLoading(false);
-      return;
-    }
-
-    if (!validateCPF(formData.cpf)) {
-      setError('CPF inválido');
+    const parsed = registerSchema.safeParse(formData);
+    if (!parsed.success) {
+      setError(parsed.error.issues[0]?.message ?? 'Dados inválidos');
       setIsLoading(false);
       return;
     }
@@ -82,7 +70,7 @@ export default function RegisterPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(parsed.data),
       });
 
       const data = await response.json();
@@ -95,194 +83,109 @@ export default function RegisterPage() {
       setTimeout(() => {
         router.push('/login');
       }, 2000);
-    } catch (error: any) {
-      setError(error.message);
+    } catch (error) {
+      setError(
+        error instanceof Error ? error.message : 'Erro ao criar conta'
+      );
     } finally {
       setIsLoading(false);
     }
   };
 
-  return (
-    <div className='min-h-screen bg-neutral-900 flex items-center justify-center py-xl px-md'>
-      <div className='w-full max-w-md'>
-        {/* Back Button */}
-        <div className='mb-lg'>
-          <Link
-            href='/'
-            className='inline-flex items-center text-sm text-neutral-400 hover:text-accent transition-colors'
-          >
-            <ArrowLeft className='h-4 w-4 mr-sm' />
-            Voltar para home
-          </Link>
-        </div>
-
-        {/* Header */}
-        <div className='text-center mb-xl'>
-          <div className='flex justify-center mb-md'>
-            <div className='flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-accent'>
-              <Trophy className='h-6 w-6' />
-            </div>
-          </div>
-          <h1 className='text-2xl font-semibold text-accent mb-sm'>
-            Cadastrar-se
-          </h1>
-          <p className='text-neutral-400'>
-            Crie sua conta para acessar o sistema da AFPS
-          </p>
-        </div>
-
-        <Card>
-          <CardContent className='pt-lg'>
-            <form onSubmit={handleSubmit} className='space-y-lg'>
-              {/* Nome */}
-              <div className='space-y-sm'>
-                <Label htmlFor='name' className='text-accent'>
-                  Nome Completo
-                </Label>
-                <div className='relative'>
-                  <User className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-neutral-400' />
-                  <Input
-                    id='name'
-                    name='name'
-                    type='text'
-                    placeholder='Seu nome completo'
-                    value={formData.name}
-                    onChange={handleChange}
-                    className='pl-10'
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* CPF */}
-              <div className='space-y-sm'>
-                <Label htmlFor='cpf' className='text-accent'>
-                  CPF
-                </Label>
-                <div className='relative'>
-                  <CreditCard className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-neutral-400' />
-                  <Input
-                    id='cpf'
-                    name='cpf'
-                    type='text'
-                    placeholder='000.000.000-00'
-                    value={formData.cpf}
-                    onChange={handleChange}
-                    className='pl-10'
-                    maxLength={14}
-                    required
-                  />
-                </div>
-                <p className='text-xs text-neutral-400'>
-                  Seu CPF deve estar cadastrado pela comissão para criar uma
-                  conta
-                </p>
-              </div>
-
-              {/* Email */}
-              <div className='space-y-sm'>
-                <Label htmlFor='email' className='text-accent'>
-                  Email
-                </Label>
-                <div className='relative'>
-                  <Mail className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-neutral-400' />
-                  <Input
-                    id='email'
-                    name='email'
-                    type='email'
-                    placeholder='seu@email.com'
-                    value={formData.email}
-                    onChange={handleChange}
-                    className='pl-10'
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Senha */}
-              <div className='space-y-sm'>
-                <Label htmlFor='password' className='text-accent'>
-                  Senha
-                </Label>
-                <div className='relative'>
-                  <Lock className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-neutral-400' />
-                  <Input
-                    id='password'
-                    name='password'
-                    type='password'
-                    placeholder='Mínimo 6 caracteres'
-                    value={formData.password}
-                    onChange={handleChange}
-                    className='pl-10'
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Confirmar Senha */}
-              <div className='space-y-sm'>
-                <Label htmlFor='confirmPassword' className='text-accent'>
-                  Confirmar Senha
-                </Label>
-                <div className='relative'>
-                  <Lock className='absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-neutral-400' />
-                  <Input
-                    id='confirmPassword'
-                    name='confirmPassword'
-                    type='password'
-                    placeholder='Confirme sua senha'
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
-                    className='pl-10'
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Error/Success Messages */}
-              {error && (
-                <Alert variant='destructive'>
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-
-              {success && (
-                <Alert className='border-success bg-success/10'>
-                  <AlertDescription className='text-success'>
-                    {success}
-                  </AlertDescription>
-                </Alert>
-              )}
-
-              {/* Submit Button */}
-              <Button
-                type='submit'
-                className='w-full'
-                size='lg'
-                disabled={isLoading}
-              >
-                {isLoading && (
-                  <Loader2 className='mr-sm h-4 w-4 animate-spin' />
-                )}
-                Criar Conta
-              </Button>
-            </form>
-
-            {/* Login Link */}
-            <div className='mt-lg text-center'>
-              <p className='text-sm text-neutral-400'>
-                Já tem uma conta?{' '}
-                <Link
-                  href='/login'
-                  className='text-primary hover:text-primary/80 transition-colors font-medium'
-                >
-                  Entre aqui
-                </Link>
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+  const field = (
+    name: keyof typeof formData,
+    label: string,
+    props: React.ComponentProps<typeof Input> = {},
+    hint?: string
+  ) => (
+    <div className='space-y-2'>
+      <Label htmlFor={name}>{label}</Label>
+      <Input
+        id={name}
+        name={name}
+        value={formData[name]}
+        onChange={handleChange}
+        aria-describedby={hint ? `${name}-hint` : undefined}
+        required
+        {...props}
+      />
+      {hint && (
+        <p id={`${name}-hint`} className='text-sm text-muted-foreground'>
+          {hint}
+        </p>
+      )}
     </div>
+  );
+
+  return (
+    <AuthShell
+      title='Criar conta'
+      description='Para jogadores já cadastrados pela comissão da AFPS.'
+      footer={
+        <>
+          Já tem conta?{' '}
+          <Link
+            href='/login'
+            className='font-medium text-primary underline underline-offset-4'
+          >
+            Entrar
+          </Link>
+        </>
+      }
+    >
+      <form onSubmit={handleSubmit} className='space-y-6'>
+        {field('name', 'Nome completo', {
+          type: 'text',
+          autoComplete: 'name',
+        })}
+        {field(
+          'cpf',
+          'CPF',
+          {
+            type: 'text',
+            inputMode: 'numeric',
+            placeholder: '000.000.000-00',
+            maxLength: 14,
+          },
+          'Use o mesmo CPF que você passou para a comissão.'
+        )}
+        {field('email', 'Email', {
+          type: 'email',
+          autoComplete: 'email',
+          placeholder: 'seu@email.com',
+        })}
+        {field(
+          'password',
+          'Senha',
+          {
+            type: 'password',
+            autoComplete: 'new-password',
+            minLength: PASSWORD_MIN_LENGTH,
+          },
+          `Mínimo de ${PASSWORD_MIN_LENGTH} caracteres.`
+        )}
+        {field('confirmPassword', 'Confirmar senha', {
+          type: 'password',
+          autoComplete: 'new-password',
+        })}
+
+        {error && (
+          <Alert variant='destructive'>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        {success && (
+          <Alert variant='success'>
+            <AlertDescription>{success}</AlertDescription>
+          </Alert>
+        )}
+
+        <Button type='submit' className='w-full' size='lg' disabled={isLoading}>
+          {isLoading && <Loader2 className='animate-spin' />}
+          Criar conta
+        </Button>
+      </form>
+    </AuthShell>
   );
 }

@@ -4,22 +4,23 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 const badgeVariants = cva(
-  'inline-flex items-center rounded-sm border px-2.5 py-0.5 text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+  // success / warning / destructive / info mostram um "cartão do árbitro"
+  // colorido antes do texto; o texto fica sempre na cor de tinta (contraste).
+  'inline-flex items-center gap-1.5 rounded-sm border px-2 py-0.5 text-xs font-medium whitespace-nowrap',
   {
     variants: {
       variant: {
-        default:
-          'border-transparent bg-primary text-accent hover:bg-primary/80',
+        default: 'border-transparent bg-primary text-primary-foreground',
         secondary:
-          'border-transparent bg-secondary text-neutral-900 hover:bg-secondary/80',
-        destructive:
-          'border-transparent bg-error text-accent hover:bg-error/80',
-        outline: 'border-neutral-700 text-accent',
+          'border-transparent bg-secondary text-secondary-foreground',
+        outline: 'border-border bg-card text-muted-foreground',
         success:
-          'border-transparent bg-success text-accent hover:bg-success/80',
+          'border-border bg-card text-foreground before:ref-card before:bg-success',
         warning:
-          'border-transparent bg-warning text-accent hover:bg-warning/80',
-        info: 'border-transparent bg-info text-accent hover:bg-info/80',
+          'border-border bg-card text-foreground before:ref-card before:bg-warning',
+        destructive:
+          'border-border bg-card text-foreground before:ref-card before:bg-error',
+        info: 'border-border bg-card text-foreground before:ref-card before:bg-info',
       },
     },
     defaultVariants: {

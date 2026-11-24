@@ -1,369 +1,274 @@
-import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import {
-  MapPin,
-  Users,
   Calendar,
-  Crown,
-  Trophy,
-  Target,
-  Phone,
-  Mail,
   Facebook,
-  Twitter,
   Instagram,
+  Mail,
+  MapPin,
+  Phone,
+  Twitter,
+  Users,
 } from 'lucide-react';
-import { getAssociationData } from '@/lib/actions/association';
+import { Button } from '@/components/ui/button';
+import { getAssociationData } from '@/lib/data/association';
+
+// Sempre busca dados atuais (contagem de jogadores etc.), sem prerender no build.
+export const dynamic = 'force-dynamic';
 
 export default async function HomePage() {
   const association = await getAssociationData();
 
   if (!association) {
-    notFound();
+    return (
+      <main className='mx-auto flex min-h-screen max-w-xl flex-col justify-center px-4'>
+        <h1 className='heading text-2xl'>Associação não configurada</h1>
+        <p className='mt-2 text-muted-foreground'>
+          Nenhum dado da associação foi encontrado. Rode{' '}
+          <code className='rounded-sm bg-muted px-1 py-0.5 text-foreground'>
+            npm run seed
+          </code>{' '}
+          para criar os dados iniciais.
+        </p>
+      </main>
+    );
   }
 
+  // Só renderiza links de redes sociais com URL http(s) (evita javascript: etc.)
+  const safeUrl = (url?: string | null) =>
+    url && /^https?:\/\//i.test(url) ? url : undefined;
+  const social = {
+    facebook: safeUrl(association.socialMedia.facebook),
+    twitter: safeUrl(association.socialMedia.twitter),
+    instagram: safeUrl(association.socialMedia.instagram),
+  };
+  const hasSocial = social.facebook || social.twitter || social.instagram;
+
+  const foundedYear = new Date(association.foundedDate).getUTCFullYear();
+
+  const steps = [
+    {
+      title: 'Fale com a comissão',
+      text: 'A comissão faz sua ficha de jogador e libera o seu CPF no sistema.',
+    },
+    {
+      title: 'Crie sua conta',
+      text: 'Use o mesmo CPF em "Cadastrar-se" para acessar o sistema.',
+    },
+    {
+      title: 'Venha jogar',
+      text: `${association.gameSchedule}. Além dos jogos, tem torneios e confraternizações.`,
+    },
+  ];
+
   return (
-    <div className='min-h-screen bg-neutral-900'>
-      {/* Header */}
-      <header className='sticky top-0 z-50 w-full border-b border-neutral-700 bg-neutral-900/95 backdrop-blur'>
-        <div className='container mx-auto flex h-16 max-w-7xl items-center justify-between px-md'>
-          <div className='flex items-center space-x-md'>
-            <div className='flex h-10 w-10 items-center justify-center rounded bg-primary text-accent'>
-              <Trophy className='h-6 w-6' />
-            </div>
-            <div>
-              <h1 className='text-lg font-semibold text-accent'>
-                {association.name}
-              </h1>
-              <p className='text-sm text-neutral-400'>Associação de Futebol</p>
-            </div>
-          </div>
-          <div className='flex items-center space-x-sm'>
-            <Button variant='outline' size='sm' asChild>
-              <Link href='/login'>Entrar</Link>
+    <div className='min-h-screen'>
+      {/* Abertura em petróleo: nome da associação como peça principal */}
+      <header className='bg-primary text-primary-foreground'>
+        <div className='mx-auto flex h-14 max-w-6xl items-center justify-between px-4'>
+          <span className='heading text-xl'>AFPS</span>
+          <nav className='flex items-center gap-2'>
+            <Link
+              href='/login'
+              className='rounded-sm px-2 py-1 text-sm font-medium text-primary-foreground/85 hover:text-primary-foreground focus-visible:outline-primary-foreground'
+            >
+              Entrar
+            </Link>
+          </nav>
+        </div>
+
+        <div className='mx-auto max-w-6xl px-4 pt-8 pb-12 md:pt-12 md:pb-16'>
+          <p className='text-sm text-primary-foreground/75'>
+            Associação de futebol desde {foundedYear}
+          </p>
+          <h1 className='heading mt-2 max-w-4xl text-3xl leading-[0.95] sm:text-4xl md:text-[5.5rem]'>
+            {association.name}
+          </h1>
+          <p className='mt-6 max-w-2xl text-lg leading-relaxed text-primary-foreground/85'>
+            {association.description}
+          </p>
+
+          <div className='mt-8 flex flex-col gap-2 sm:flex-row'>
+            <Button
+              size='lg'
+              asChild
+              className='bg-warning text-foreground hover:bg-warning/90 focus-visible:outline-primary-foreground'
+            >
+              <Link href='/register'>Quero jogar</Link>
             </Button>
-            <Button size='sm' asChild>
-              <Link href='/register'>Cadastrar-se</Link>
+            <Button
+              size='lg'
+              variant='ghost'
+              asChild
+              className='text-primary-foreground ring-1 ring-primary-foreground/40 hover:bg-primary-foreground/10 focus-visible:outline-primary-foreground'
+            >
+              <Link href='/login'>Já tenho conta</Link>
             </Button>
           </div>
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className='relative overflow-hidden py-xl lg:py-24'>
-        <div className='container mx-auto max-w-7xl px-md'>
-          <div className='mx-auto max-w-4xl text-center'>
-            <Badge variant='secondary' className='mb-md'>
-              ⚽ Fundada em {new Date(association.foundedDate).getFullYear()}
-            </Badge>
-            <h1 className='mb-lg text-4xl font-semibold tracking-tight text-accent sm:text-6xl'>
-              Bem-vindo à{' '}
-              <span className='text-primary'>{association.name}</span>
-            </h1>
-            <p className='mb-xl text-lg text-neutral-300 sm:text-xl'>
-              {association.description}
-            </p>
-            <div className='flex flex-col gap-md sm:flex-row sm:justify-center'>
-              <Button size='lg' asChild>
-                <Link href='/register'>
-                  <Users className='mr-sm h-4 w-4' />
-                  Junte-se a Nós
-                </Link>
-              </Button>
-              <Button variant='outline' size='lg' asChild>
-                <Link href='#informacoes'>
-                  <Target className='mr-sm h-4 w-4' />
-                  Saiba Mais
-                </Link>
-              </Button>
+      {/* Fatos do dia a dia, em uma linha */}
+      <section aria-label='Informações rápidas' className='border-b bg-card'>
+        <dl className='mx-auto grid max-w-6xl gap-px bg-border sm:grid-cols-3 [&>div]:bg-card'>
+          <div className='flex items-start gap-2 px-4 py-6'>
+            <Calendar className='mt-0.5 h-5 w-5 shrink-0 text-primary' />
+            <div>
+              <dt className='text-sm text-muted-foreground'>Jogos</dt>
+              <dd className='font-semibold'>{association.gameSchedule}</dd>
             </div>
           </div>
-        </div>
-      </section>
-
-      {/* Stats Section */}
-      <section className='py-xl'>
-        <div className='container mx-auto max-w-7xl px-md'>
-          <div className='grid gap-lg sm:grid-cols-2 lg:grid-cols-4'>
-            <Card className='text-center'>
-              <CardHeader className='pb-sm'>
-                <div className='mx-auto flex h-12 w-12 items-center justify-center rounded bg-primary/10'>
-                  <MapPin className='h-6 w-6 text-primary' />
-                </div>
-                <CardTitle className='text-base'>Localização</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className='text-sm text-neutral-400'>
-                  {association.address}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className='text-center'>
-              <CardHeader className='pb-sm'>
-                <div className='mx-auto flex h-12 w-12 items-center justify-center rounded bg-primary/10'>
-                  <Users className='h-6 w-6 text-primary' />
-                </div>
-                <CardTitle className='text-base'>Jogadores</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className='text-2xl font-semibold text-primary'>
+          <div className='flex items-start gap-2 px-4 py-6'>
+            <Users className='mt-0.5 h-5 w-5 shrink-0 text-primary' />
+            <div>
+              <dt className='text-sm text-muted-foreground'>Elenco</dt>
+              <dd className='font-semibold'>
+                <span className='numeral text-lg'>
                   {association.totalPlayers}
-                </div>
-                <p className='text-sm text-neutral-400'>Jogadores ativos</p>
-              </CardContent>
-            </Card>
-
-            <Card className='text-center'>
-              <CardHeader className='pb-sm'>
-                <div className='mx-auto flex h-12 w-12 items-center justify-center rounded bg-primary/10'>
-                  <Calendar className='h-6 w-6 text-primary' />
-                </div>
-                <CardTitle className='text-base'>Jogos</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className='text-sm text-neutral-400'>
-                  {association.gameSchedule}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card className='text-center'>
-              <CardHeader className='pb-sm'>
-                <div className='mx-auto flex h-12 w-12 items-center justify-center rounded bg-primary/10'>
-                  <Crown className='h-6 w-6 text-primary' />
-                </div>
-                <CardTitle className='text-base'>Comissão</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className='space-y-xs'>
-                  {association.commission?.map(
-                    (member: string, index: number) => (
-                      <Badge key={index} variant='outline' className='text-xs'>
-                        {member}
-                      </Badge>
-                    )
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* Main Content */}
-      <section id='informacoes' className='py-xl bg-neutral-800/50'>
-        <div className='container mx-auto max-w-7xl px-md'>
-          <div className='mx-auto max-w-2xl text-center mb-xl'>
-            <h2 className='text-2xl font-semibold tracking-tight text-accent'>
-              Principais Informações
-            </h2>
-            <p className='mt-md text-lg text-neutral-300'>
-              Conheça mais sobre nossa associação e como fazer parte desta
-              família
-            </p>
-          </div>
-
-          <div className='grid gap-xl lg:grid-cols-2'>
-            <Card>
-              <CardHeader>
-                <CardTitle className='flex items-center space-x-sm'>
-                  <Trophy className='h-5 w-5 text-primary' />
-                  <span>Sobre Nossa Associação</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className='space-y-md'>
-                <div>
-                  <h4 className='font-medium mb-sm text-accent'>
-                    Nossa História
-                  </h4>
-                  <p className='text-neutral-400'>
-                    Fundada em {new Date(association.foundedDate).getFullYear()}
-                    , nossa associação tem como objetivo promover o esporte e a
-                    união entre os membros da comunidade.
-                  </p>
-                </div>
-                <div>
-                  <h4 className='font-medium mb-sm text-accent'>
-                    Nossos Valores
-                  </h4>
-                  <p className='text-neutral-400'>
-                    Acreditamos no fair play, respeito mútuo e na importância do
-                    esporte como ferramenta de integração social.
-                  </p>
-                </div>
-                <div>
-                  <h4 className='font-medium mb-sm text-accent'>Atividades</h4>
-                  <div className='flex flex-wrap gap-sm'>
-                    <Badge variant='secondary'>Jogos Regulares</Badge>
-                    <Badge variant='secondary'>Torneios</Badge>
-                    <Badge variant='secondary'>Confraternizações</Badge>
-                    <Badge variant='secondary'>Treinos</Badge>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className='flex items-center space-x-sm'>
-                  <Target className='h-5 w-5 text-primary' />
-                  <span>Como Participar</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className='space-y-lg'>
-                <div className='space-y-sm'>
-                  <h4 className='font-medium text-accent'>
-                    1. Inscreva-se Agora
-                  </h4>
-                  <p className='text-sm text-neutral-400'>
-                    Se você adora futebol e deseja se juntar a nós, cadastre-se
-                    em nossa plataforma.
-                  </p>
-                  <Button className='w-full' asChild>
-                    <Link href='/register'>
-                      <Users className='mr-sm h-4 w-4' />
-                      Cadastrar-se
-                    </Link>
-                  </Button>
-                </div>
-
-                <div className='space-y-sm'>
-                  <h4 className='font-medium text-accent'>
-                    2. Participe dos Eventos
-                  </h4>
-                  <p className='text-sm text-neutral-400'>
-                    Além dos jogos regulares, organizamos torneios e
-                    confraternizações.
-                  </p>
-                </div>
-
-                <div className='space-y-sm'>
-                  <h4 className='font-medium text-accent'>
-                    3. Faça Parte da Família
-                  </h4>
-                  <p className='text-sm text-neutral-400'>
-                    Conecte-se com outros jogadores e viva experiências únicas
-                    no futebol.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* Contact Section */}
-      <section className='py-xl'>
-        <div className='container mx-auto max-w-7xl px-md'>
-          <div className='mx-auto max-w-2xl text-center mb-xl'>
-            <h2 className='text-2xl font-semibold tracking-tight text-accent'>
-              Entre em Contato
-            </h2>
-            <p className='mt-md text-lg text-neutral-300'>
-              Tem alguma pergunta ou sugestão? Estamos aqui para ajudar!
-            </p>
-          </div>
-
-          <div className='grid gap-xl lg:grid-cols-2'>
-            <Card>
-              <CardHeader>
-                <CardTitle className='flex items-center space-x-sm'>
-                  <Phone className='h-5 w-5 text-primary' />
-                  <span>Informações de Contato</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className='space-y-md'>
-                <div className='flex items-center space-x-sm p-sm rounded bg-neutral-700/50'>
-                  <Phone className='h-4 w-4 text-primary' />
-                  <span className='font-medium text-accent'>
-                    {association.phone}
-                  </span>
-                </div>
-                <div className='flex items-center space-x-sm p-sm rounded bg-neutral-700/50'>
-                  <Mail className='h-4 w-4 text-primary' />
-                  <span className='font-medium text-accent'>
-                    {association.email}
-                  </span>
-                </div>
-                <div className='flex items-start space-x-sm p-sm rounded bg-neutral-700/50'>
-                  <MapPin className='h-4 w-4 text-primary mt-0.5' />
-                  <span className='font-medium text-accent'>
-                    {association.address}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className='flex items-center space-x-sm'>
-                  <Instagram className='h-5 w-5 text-primary' />
-                  <span>Redes Sociais</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className='grid grid-cols-3 gap-md'>
-                  {association.socialMedia?.facebook && (
-                    <Button variant='outline' size='lg' asChild>
-                      <a
-                        href={association.socialMedia.facebook}
-                        target='_blank'
-                        rel='noopener noreferrer'
-                      >
-                        <Facebook className='h-5 w-5' />
-                      </a>
-                    </Button>
-                  )}
-                  {association.socialMedia?.twitter && (
-                    <Button variant='outline' size='lg' asChild>
-                      <a
-                        href={association.socialMedia.twitter}
-                        target='_blank'
-                        rel='noopener noreferrer'
-                      >
-                        <Twitter className='h-5 w-5' />
-                      </a>
-                    </Button>
-                  )}
-                  {association.socialMedia?.instagram && (
-                    <Button variant='outline' size='lg' asChild>
-                      <a
-                        href={association.socialMedia.instagram}
-                        target='_blank'
-                        rel='noopener noreferrer'
-                      >
-                        <Instagram className='h-5 w-5' />
-                      </a>
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className='border-t border-neutral-700 bg-neutral-800/50'>
-        <div className='container mx-auto max-w-7xl px-md py-xl'>
-          <div className='flex flex-col items-center justify-between gap-md md:flex-row'>
-            <div className='flex items-center space-x-sm'>
-              <div className='flex h-8 w-8 items-center justify-center rounded bg-primary text-accent'>
-                <Trophy className='h-4 w-4' />
-              </div>
-              <span className='font-medium text-accent'>
-                {association.name}
-              </span>
+                </span>{' '}
+                jogadores ativos
+              </dd>
             </div>
-            <p className='text-sm text-neutral-400'>
-              © {new Date().getFullYear()} {association.name}. Todos os direitos
-              reservados.
-            </p>
           </div>
+          <div className='flex items-start gap-2 px-4 py-6'>
+            <MapPin className='mt-0.5 h-5 w-5 shrink-0 text-primary' />
+            <div>
+              <dt className='text-sm text-muted-foreground'>Onde</dt>
+              <dd className='font-semibold'>{association.address}</dd>
+            </div>
+          </div>
+        </dl>
+      </section>
+
+      <main className='mx-auto max-w-6xl px-4 py-12 md:py-16'>
+        <div className='grid gap-12 md:grid-cols-2 md:gap-16'>
+          {/* Sobre */}
+          <section>
+            <h2 className='heading text-xl'>Sobre a associação</h2>
+            <div className='mt-4 max-w-prose space-y-4 leading-relaxed text-foreground/85'>
+              <p>
+                Fundada em {foundedYear}, a associação existe para promover o
+                esporte e a união entre os moradores da comunidade.
+              </p>
+              <p>
+                Jogamos com fair play e respeito, e usamos o futebol como ponto
+                de encontro: jogos regulares, torneios, treinos e
+                confraternizações.
+              </p>
+            </div>
+
+            {association.commission.length > 0 && (
+              <div className='mt-8'>
+                <h3 className='font-semibold'>Comissão</h3>
+                <ul className='mt-2 flex flex-wrap gap-x-6 gap-y-1 text-foreground/85'>
+                  {association.commission.map((member) => (
+                    <li key={member}>{member}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </section>
+
+          {/* Como participar — é uma sequência real, por isso numerada */}
+          <section>
+            <h2 className='heading text-xl'>Como participar</h2>
+            <ol className='mt-4 space-y-6'>
+              {steps.map((step, i) => (
+                <li key={step.title} className='flex gap-4'>
+                  <span
+                    aria-hidden
+                    className='numeral w-8 shrink-0 text-3xl text-primary'
+                  >
+                    {i + 1}
+                  </span>
+                  <div className='pt-1'>
+                    <p className='font-semibold'>{step.title}</p>
+                    <p className='mt-1 text-foreground/80'>{step.text}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+            <Button asChild className='mt-8'>
+              <Link href='/register'>Criar minha conta</Link>
+            </Button>
+          </section>
+        </div>
+
+        {/* Contato */}
+        <section className='mt-12 border-t pt-12 md:mt-16'>
+          <h2 className='heading text-xl'>Contato</h2>
+          <div className='mt-4 flex flex-col gap-6 md:flex-row md:items-start md:justify-between'>
+            <ul className='min-w-0 space-y-2'>
+              <li className='flex items-center gap-2'>
+                <Phone className='h-4 w-4 text-primary' />
+                <a
+                  href={`tel:${association.phone.replace(/\D/g, '')}`}
+                  className='font-medium break-all underline decoration-border underline-offset-4 hover:decoration-primary'
+                >
+                  {association.phone}
+                </a>
+              </li>
+              <li className='flex items-center gap-2'>
+                <Mail className='h-4 w-4 text-primary' />
+                <a
+                  href={`mailto:${association.email}`}
+                  className='font-medium break-all underline decoration-border underline-offset-4 hover:decoration-primary'
+                >
+                  {association.email}
+                </a>
+              </li>
+              <li className='flex items-start gap-2'>
+                <MapPin className='mt-1 h-4 w-4 text-primary' />
+                <span className='font-medium break-words'>{association.address}</span>
+              </li>
+            </ul>
+
+            {hasSocial && (
+              <div className='flex gap-2'>
+                {social.facebook && (
+                  <Button variant='outline' size='icon' asChild>
+                    <a
+                      href={social.facebook}
+                      target='_blank'
+                      rel='noopener noreferrer'
+                      aria-label='Facebook'
+                    >
+                      <Facebook />
+                    </a>
+                  </Button>
+                )}
+                {social.twitter && (
+                  <Button variant='outline' size='icon' asChild>
+                    <a
+                      href={social.twitter}
+                      target='_blank'
+                      rel='noopener noreferrer'
+                      aria-label='Twitter'
+                    >
+                      <Twitter />
+                    </a>
+                  </Button>
+                )}
+                {social.instagram && (
+                  <Button variant='outline' size='icon' asChild>
+                    <a
+                      href={social.instagram}
+                      target='_blank'
+                      rel='noopener noreferrer'
+                      aria-label='Instagram'
+                    >
+                      <Instagram />
+                    </a>
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
+        </section>
+      </main>
+
+      <footer className='border-t'>
+        <div className='mx-auto max-w-6xl px-4 py-6 text-sm text-muted-foreground'>
+          © {new Date().getFullYear()} {association.name}
         </div>
       </footer>
     </div>
