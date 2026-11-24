@@ -1,7 +1,8 @@
 import CredentialsProvider from 'next-auth/providers/credentials';
+import type { NextAuthOptions } from 'next-auth';
 import dbConnect from './mongodb';
 import User from './models/User';
-import type { NextAuthOptions } from 'next-auth';
+import { getClientIp, rateLimit } from './rate-limit';
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -11,39 +12,43 @@ export const authOptions: NextAuthOptions = {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
       },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
+      async authorize(credentials, req) {
+        const email = credentials?.email?.trim().toLowerCase();
+        const password = credentials?.password;
+
+        if (!email || !password) {
           return null;
         }
 
-        await dbConnect();
+        // Máx. 10 tentativas a cada 15 min por IP+email.
+        const ip = getClientIp(req?.headers ?? {});
+        const limit = rateLimit(`login:${ip}:${email}`, {
+          limit: 10,
+          windowMs: 15 * 60 * 1000,
+        });
+        if (!limit.ok) {
+          throw new Error('Muitas tentativas. Tente novamente mais tarde.');
+        }
 
         try {
-          const user = await User.findOne({
-            email: credentials.email,
-            isActive: true,
-          });
+          await dbConnect();
 
-          if (!user) {
-            return null;
-          }
-
-          const isPasswordValid = await user.comparePassword(
-            credentials.password
+          const user = await User.findOne({ email, isActive: true }).select(
+            '+password'
           );
 
-          if (!isPasswordValid) {
+          if (!user || !(await user.comparePassword(password))) {
             return null;
           }
 
           return {
-            id: user._id.toString(),
+            id: String(user._id),
             email: user.email,
             name: user.name,
             role: user.role,
           };
         } catch (error) {
-          console.error('Error during authorization:', error);
+          console.error('Erro durante autenticação:', error);
           return null;
         }
       },
@@ -51,25 +56,20 @@ export const authOptions: NextAuthOptions = {
   ],
   session: {
     strategy: 'jwt',
+    maxAge: 7 * 24 * 60 * 60, // 7 dias
   },
   callbacks: {
-    async jwt({
-      token,
-      user,
-    }: {
-      token: import('next-auth/jwt').JWT;
-      user?: import('next-auth').User;
-    }) {
+    async jwt({ token, user }) {
       if (user) {
         token.role = user.role;
       }
       return token;
     },
     async session({ session, token }) {
-      if (token) {
-        session.user.id = token.sub!;
-        session.user.role = token.role as string;
+      if (token.sub) {
+        session.user.id = token.sub;
       }
+      session.user.role = token.role ?? 'jogador';
       return session;
     },
   },

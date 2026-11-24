@@ -1,25 +1,39 @@
 import mongoose from 'mongoose';
+import { PLAYER_POSITIONS } from '@/lib/validation';
+
+export { PLAYER_POSITIONS };
+export type PlayerPosition = (typeof PLAYER_POSITIONS)[number];
 
 export interface IPlayer extends mongoose.Document {
-  userId: mongoose.Types.ObjectId;
+  /** Conta vinculada; preenchida quando o jogador se cadastra com o mesmo CPF. */
+  userId?: mongoose.Types.ObjectId;
+  cpf: string;
   fullName: string;
   nickname: string;
-  position: string;
+  position: PlayerPosition;
   shirtNumber: number;
   birthDate: Date;
   phone: string;
   address: string;
   isActive: boolean;
+  createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
 
-const playerSchema = new mongoose.Schema(
+const playerSchema = new mongoose.Schema<IPlayer>(
   {
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true,
+      unique: true,
+      sparse: true,
+    },
+    cpf: {
+      type: String,
+      required: [true, 'CPF é obrigatório'],
+      unique: true,
+      match: [/^\d{11}$/, 'CPF deve conter 11 dígitos'],
     },
     fullName: {
       type: String,
@@ -34,7 +48,7 @@ const playerSchema = new mongoose.Schema(
     position: {
       type: String,
       required: [true, 'Posição é obrigatória'],
-      enum: ['Goleiro', 'Zagueiro', 'Lateral', 'Volante', 'Meia', 'Atacante'],
+      enum: PLAYER_POSITIONS,
     },
     shirtNumber: {
       type: Number,
@@ -60,11 +74,18 @@ const playerSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
   },
   {
     timestamps: true,
   }
 );
 
-export default mongoose.models.Player ||
-  mongoose.model<IPlayer>('Player', playerSchema);
+const Player: mongoose.Model<IPlayer> =
+  mongoose.models.Player || mongoose.model<IPlayer>('Player', playerSchema);
+
+export default Player;

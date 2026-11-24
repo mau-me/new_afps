@@ -1,36 +1,87 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AFPS — Sistema de Gestão
 
-## Getting Started
+Sistema de gestão da **Associação de Futebol de Porto dos Santos**: página
+pública da associação, cadastro de jogadores e controle financeiro
+(mensalidades, multas por cartão e transações).
 
-First, run the development server:
+## Stack
+
+- [Next.js 15](https://nextjs.org) (App Router) + React 19 + TypeScript
+- MongoDB com [Mongoose](https://mongoosejs.com)
+- [NextAuth v4](https://next-auth.js.org) (login por email e senha, sessão JWT)
+- Tailwind CSS v4 + componentes [shadcn/ui](https://ui.shadcn.com)
+- [Zod](https://zod.dev) para validação (compartilhada entre cliente e servidor)
+- [Vitest](https://vitest.dev) para testes
+
+## Primeiros passos
+
+Requisitos: Node.js 22.9+ e um MongoDB acessível.
 
 ```bash
+npm install
+cp .env.example .env.local   # preencha MONGODB_URI e NEXTAUTH_SECRET
+npm run seed                 # cria associação, admin e CPFs de teste
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Acesse http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+O seed cria o administrador (papel `comissao`) com o email `SEED_ADMIN_EMAIL`.
+Se `SEED_ADMIN_PASSWORD` não for definido, uma senha aleatória é gerada e
+exibida **uma única vez** no terminal.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Scripts
 
-## Learn More
+| Comando              | Descrição                                   |
+| -------------------- | ------------------------------------------- |
+| `npm run dev`        | Servidor de desenvolvimento                 |
+| `npm run build`      | Build de produção (inclui lint e tipos)     |
+| `npm run start`      | Servidor de produção                        |
+| `npm run lint`       | ESLint                                      |
+| `npm run type-check` | Checagem de tipos                           |
+| `npm test`           | Testes unitários                            |
+| `npm run seed`       | Popula o banco com dados iniciais           |
 
-To learn more about Next.js, take a look at the following resources:
+## Papéis e fluxo de cadastro
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **Comissão** (`comissao`): administra jogadores e finanças.
+- **Jogador** (`jogador`): vê o dashboard e a lista de jogadores.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Ninguém se cadastra sem autorização:
 
-## Deploy on Vercel
+1. A comissão cadastra o jogador em **Jogadores → Cadastrar jogador**. Isso
+   libera o CPF dele.
+2. O jogador cria sua conta em **Cadastrar-se** usando o mesmo CPF; a conta é
+   vinculada automaticamente à ficha.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Estrutura
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+src/
+  app/                  rotas (App Router)
+    api/auth/           NextAuth e cadastro
+    dashboard/          painel
+    players/            lista e cadastro de jogadores
+  components/           navbar e componentes de UI (shadcn)
+  lib/
+    actions/            server actions (sempre com checagem de papel)
+    data/               consultas de servidor (não expostas como endpoint)
+    models/             schemas do Mongoose
+    auth.ts             configuração do NextAuth
+    session.ts          helpers requireSession / requireRole / assertRole
+    validation.ts       schemas Zod compartilhados
+  middleware.ts         proteção de rotas
+scripts/seed-database.js
+```
+
+## Convenções
+
+- **Valores em dinheiro** são guardados em **centavos** (`amountCents`,
+  inteiro). Use `formatCents` e `parseCurrencyToCents` de `lib/utils`.
+- **CPF** é guardado só com dígitos; normalize com `onlyDigits` ou `cpfSchema`.
+- **Server actions** são endpoints públicos: comece toda action com
+  `assertRole(...)`.
+- Mensalidade "vencida" não é um status salvo: é `em_aberto` com `dueDate` no
+  passado (`overdueFilter`).
+- O limite de tentativas (`lib/rate-limit.ts`) guarda o estado em memória. Em
+  produção com várias instâncias, troque por Redis/Upstash.

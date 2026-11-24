@@ -5,60 +5,71 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function validateCPF(cpf: string): boolean {
-  // Remove caracteres não numéricos
-  cpf = cpf.replace(/[^\d]/g, '');
+/** Remove tudo que não for dígito. */
+export function onlyDigits(value: string): string {
+  return value.replace(/\D/g, '');
+}
 
-  // Verifica se tem 11 dígitos
+export function validateCPF(value: string): boolean {
+  const cpf = onlyDigits(value);
+
   if (cpf.length !== 11) return false;
-
-  // Verifica se todos os dígitos são iguais
+  // Rejeita sequências repetidas (111.111.111-11 etc.)
   if (/^(\d)\1{10}$/.test(cpf)) return false;
 
-  // Validação do primeiro dígito verificador
-  let sum = 0;
-  for (let i = 0; i < 9; i++) {
-    sum += Number.parseInt(cpf.charAt(i)) * (10 - i);
-  }
-  let remainder = 11 - (sum % 11);
-  if (remainder === 10 || remainder === 11) remainder = 0;
-  if (remainder !== Number.parseInt(cpf.charAt(9))) return false;
+  const checkDigit = (length: number) => {
+    let sum = 0;
+    for (let i = 0; i < length; i++) {
+      sum += Number(cpf[i]) * (length + 1 - i);
+    }
+    const remainder = 11 - (sum % 11);
+    return remainder >= 10 ? 0 : remainder;
+  };
 
-  // Validação do segundo dígito verificador
-  sum = 0;
-  for (let i = 0; i < 10; i++) {
-    sum += Number.parseInt(cpf.charAt(i)) * (11 - i);
-  }
-  remainder = 11 - (sum % 11);
-  if (remainder === 10 || remainder === 11) remainder = 0;
-  if (remainder !== Number.parseInt(cpf.charAt(10))) return false;
-
-  return true;
+  return checkDigit(9) === Number(cpf[9]) && checkDigit(10) === Number(cpf[10]);
 }
 
-export function formatCPF(cpf: string): string {
-  cpf = cpf.replace(/[^\d]/g, '');
-  return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+/** Máscara progressiva de CPF (000.000.000-00), útil enquanto o usuário digita. */
+export function formatCPF(value: string): string {
+  const cpf = onlyDigits(value).slice(0, 11);
+  return cpf
+    .replace(/^(\d{3})(\d)/, '$1.$2')
+    .replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
+    .replace(/\.(\d{3})(\d{1,2})$/, '.$1-$2');
 }
 
-export function formatPhone(phone: string): string {
-  phone = phone.replace(/[^\d]/g, '');
+export function formatPhone(value: string): string {
+  const phone = onlyDigits(value);
   if (phone.length === 11) {
     return phone.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
-  } else if (phone.length === 10) {
+  }
+  if (phone.length === 10) {
     return phone.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
   }
   return phone;
 }
 
-export function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  }).format(value);
+const brl = new Intl.NumberFormat('pt-BR', {
+  style: 'currency',
+  currency: 'BRL',
+});
+
+/** Formata um valor em centavos (inteiro) como moeda brasileira. */
+export function formatCents(cents: number): string {
+  return brl.format(cents / 100);
+}
+
+/**
+ * Converte um valor digitado ("1.234,56", "10,5", "10") para centavos.
+ * Retorna `null` se o valor for inválido.
+ */
+export function parseCurrencyToCents(value: string): number | null {
+  const normalized = value.trim().replace(/\./g, '').replace(',', '.');
+  if (!/^\d+(\.\d{1,2})?$/.test(normalized)) return null;
+  return Math.round(Number(normalized) * 100);
 }
 
 export function formatDate(date: Date | string): string {
   const dateObj = typeof date === 'string' ? new Date(date) : date;
-  return new Intl.DateTimeFormat('pt-BR').format(dateObj);
+  return new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC' }).format(dateObj);
 }

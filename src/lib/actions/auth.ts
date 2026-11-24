@@ -1,44 +1,56 @@
 'use server';
-import dbConnect from '@/lib/mongodb';
-import User from '@/lib/models/User';
+
 import { revalidatePath } from 'next/cache';
+import { z } from 'zod';
+import dbConnect from '@/lib/mongodb';
+import User, { USER_ROLES } from '@/lib/models/User';
+import { assertRole } from '@/lib/session';
+import { PASSWORD_MIN_LENGTH } from '@/lib/validation';
+
+/*
+ * Server actions são endpoints HTTP públicos: qualquer um pode chamá-las.
+ * Toda action aqui exige sessão da comissão via `assertRole`.
+ */
+
+const createUserSchema = z.object({
+  name: z.string().trim().min(3).max(120),
+  email: z.string().trim().toLowerCase().pipe(z.email()),
+  password: z.string().min(PASSWORD_MIN_LENGTH).max(128),
+  role: z.enum(USER_ROLES),
+});
 
 export async function createUser(formData: FormData) {
-  const name = formData.get('name') as string;
-  const email = formData.get('email') as string;
-  const password = formData.get('password') as string;
-  const role = formData.get('role') as 'comissao' | 'jogador';
+  await assertRole('comissao');
 
-  if (!name || !email || !password || !role) {
-    throw new Error('Todos os campos são obrigatórios');
+  const parsed = createUserSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) {
+    return { success: false, message: parsed.error.issues[0]?.message };
   }
 
   await dbConnect();
 
-  // Check if user already exists
-  const existingUser = await User.findOne({ email });
-  if (existingUser) {
-    throw new Error('Usuário já existe com este email');
+  if (await User.exists({ email: parsed.data.email })) {
+    return { success: false, message: 'Usuário já existe com este email' };
   }
 
-  // Create new user
-  const user = new User({
-    name,
-    email,
-    password,
-    role,
-  });
-
-  await user.save();
+  await User.create(parsed.data);
   revalidatePath('/settings/users');
 
   return { success: true, message: 'Usuário criado com sucesso' };
 }
 
 export async function updateUserStatus(userId: string, isActive: boolean) {
-  await dbConnect();
+  const session = await assertRole('comissao');
 
-  await User.findByIdAndUpdate(userId, { isActive });
+  if (!z.string().regex(/^[a-f\d]{24}$/i).safeParse(userId).success) {
+    return { success: false, message: 'Usuário inválido' };
+  }
+  if (userId === session.user.id && !isActive) {
+    return { success: false, message: 'Você não pode desativar a si mesmo' };
+  }
+
+  await dbConnect();
+  await User.findByIdAndUpdate(userId, { isActive: Boolean(isActive) });
   revalidatePath('/settings/users');
 
   return { success: true, message: 'Status do usuário atualizado' };

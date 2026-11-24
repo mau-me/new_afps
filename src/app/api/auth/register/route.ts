@@ -2,28 +2,70 @@ import { type NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import User from '@/lib/models/User';
 import AllowedUser from '@/lib/models/AllowedUser';
-import { validateCPF } from '@/lib/utils';
+import Player from '@/lib/models/Player';
+import { fieldErrors, registerSchema } from '@/lib/validation';
+import { getClientIp, rateLimit } from '@/lib/rate-limit';
+
+function isDuplicateKeyError(error: unknown): error is { keyPattern?: object } {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    (error as { code?: number }).code === 11000
+  );
+}
 
 export async function POST(request: NextRequest) {
-  try {
-    const { name, email, password, cpf } = await request.json();
+  // Máx. 5 cadastros por IP a cada 15 minutos.
+  const limit = rateLimit(`register:${getClientIp(request.headers)}`, {
+    limit: 5,
+    windowMs: 15 * 60 * 1000,
+  });
+  if (!limit.ok) {
+    return NextResponse.json(
+      { message: 'Muitas tentativas. Tente novamente mais tarde.' },
+      {
+        status: 429,
+        headers: { 'Retry-After': String(Math.ceil(limit.retryAfterMs / 1000)) },
+      }
+    );
+  }
 
-    // Validações básicas
-    if (!name || !email || !password || !cpf) {
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ message: 'Requisição inválida' }, { status: 400 });
+  }
+
+  const parsed = registerSchema.safeParse(body);
+  if (!parsed.success) {
+    const errors = fieldErrors(parsed.error);
+    return NextResponse.json(
+      { message: Object.values(errors)[0], errors },
+      { status: 400 }
+    );
+  }
+
+  const { name, email, password, cpf } = parsed.data;
+
+  try {
+    await dbConnect();
+
+    if (await User.exists({ email })) {
       return NextResponse.json(
-        { message: 'Todos os campos são obrigatórios' },
-        { status: 400 }
+        { message: 'Email já cadastrado' },
+        { status: 409 }
       );
     }
 
-    if (!validateCPF(cpf)) {
-      return NextResponse.json({ message: 'CPF inválido' }, { status: 400 });
-    }
+    // Reserva o CPF de forma atômica: duas requisições simultâneas
+    // não conseguem usar o mesmo CPF.
+    const allowedUser = await AllowedUser.findOneAndUpdate(
+      { cpf, isUsed: false },
+      { $set: { isUsed: true } },
+      { new: true }
+    );
 
-    await dbConnect();
-
-    // Verificar se o CPF está na lista de permitidos
-    const allowedUser = await AllowedUser.findOne({ cpf, isUsed: false });
     if (!allowedUser) {
       return NextResponse.json(
         {
@@ -34,28 +76,40 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verificar se o email já existe
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return NextResponse.json(
-        { message: 'Email já cadastrado' },
-        { status: 409 }
+    let userId;
+    try {
+      const user = await User.create({
+        name,
+        email,
+        password,
+        cpf,
+        role: 'jogador',
+      });
+      userId = user._id;
+    } catch (error) {
+      // Desfaz a reserva para o CPF poder ser usado novamente.
+      await AllowedUser.updateOne(
+        { _id: allowedUser._id },
+        { $set: { isUsed: false }, $unset: { usedBy: 1 } }
       );
+
+      if (isDuplicateKeyError(error)) {
+        return NextResponse.json(
+          { message: 'Email ou CPF já cadastrado' },
+          { status: 409 }
+        );
+      }
+      throw error;
     }
 
-    // Criar o usuário
-    const user = new User({
-      name,
-      email,
-      password,
-      role: 'jogador',
-    });
-
-    await user.save();
-
-    // Marcar o CPF como usado
-    allowedUser.isUsed = true;
-    await allowedUser.save();
+    await Promise.all([
+      AllowedUser.updateOne({ _id: allowedUser._id }, { usedBy: userId }),
+      // Vincula a ficha de jogador criada pela comissão, se existir.
+      Player.updateOne(
+        { cpf, userId: { $exists: false } },
+        { $set: { userId } }
+      ),
+    ]);
 
     return NextResponse.json(
       { message: 'Usuário criado com sucesso' },

@@ -1,21 +1,29 @@
 import mongoose from 'mongoose';
 
+export const TRANSACTION_TYPES = ['entrada', 'saida'] as const;
+export type TransactionType = (typeof TRANSACTION_TYPES)[number];
+
 export interface ITransaction extends mongoose.Document {
-  type: 'entrada' | 'saida';
+  type: TransactionType;
   category: string;
-  amount: number;
+  /** Valor em centavos (inteiro). */
+  amountCents: number;
   date: Date;
   description: string;
   receipt?: string;
+  /** Mensalidade que originou esta entrada, se houver. */
+  monthlyId?: mongoose.Types.ObjectId;
+  /** Quem registrou a transação (auditoria / prestação de contas). */
+  createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
 
-const transactionSchema = new mongoose.Schema(
+const transactionSchema = new mongoose.Schema<ITransaction>(
   {
     type: {
       type: String,
-      enum: ['entrada', 'saida'],
+      enum: TRANSACTION_TYPES,
       required: [true, 'Tipo é obrigatório'],
     },
     category: {
@@ -23,10 +31,14 @@ const transactionSchema = new mongoose.Schema(
       required: [true, 'Categoria é obrigatória'],
       trim: true,
     },
-    amount: {
+    amountCents: {
       type: Number,
       required: [true, 'Valor é obrigatório'],
       min: 0,
+      validate: {
+        validator: Number.isInteger,
+        message: 'Valor deve ser um inteiro em centavos',
+      },
     },
     date: {
       type: Date,
@@ -41,11 +53,25 @@ const transactionSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    monthlyId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Monthly',
+    },
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
   },
   {
     timestamps: true,
   }
 );
 
-export default mongoose.models.Transaction ||
+transactionSchema.index({ date: -1 });
+
+const Transaction: mongoose.Model<ITransaction> =
+  mongoose.models.Transaction ||
   mongoose.model<ITransaction>('Transaction', transactionSchema);
+
+export default Transaction;

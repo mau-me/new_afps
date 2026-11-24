@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 
+/** Dados institucionais da associação (documento único). */
 export interface IAssociation extends mongoose.Document {
   name: string;
   description: string;
@@ -14,13 +15,12 @@ export interface IAssociation extends mongoose.Document {
     instagram?: string;
   };
   commission: string[];
-  totalPlayers: number;
   gameSchedule: string;
   createdAt: Date;
   updatedAt: Date;
 }
 
-const associationSchema = new mongoose.Schema(
+const associationSchema = new mongoose.Schema<IAssociation>(
   {
     name: {
       type: String,
@@ -61,10 +61,6 @@ const associationSchema = new mongoose.Schema(
       instagram: String,
     },
     commission: [String],
-    totalPlayers: {
-      type: Number,
-      default: 0,
-    },
     gameSchedule: {
       type: String,
       default: 'Domingos pela manhã',
@@ -75,5 +71,8 @@ const associationSchema = new mongoose.Schema(
   }
 );
 
-export default mongoose.models.Association ||
+const Association: mongoose.Model<IAssociation> =
+  mongoose.models.Association ||
   mongoose.model<IAssociation>('Association', associationSchema);
+
+export default Association;

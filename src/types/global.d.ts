@@ -1,12 +1,13 @@
-import type mongoose from 'mongoose';
+import type { Mongoose } from 'mongoose';
 
 declare global {
-  namespace NodeJS {
-    interface Global {
-      mongoose: {
-        conn: typeof mongoose | null;
-        promise: Promise<typeof mongoose> | null;
-      };
-    }
-  }
+  // Cache da conexão do Mongoose entre recarregamentos (hot reload) em dev.
+  var mongoose:
+    | {
+        conn: Mongoose | null;
+        promise: Promise<Mongoose> | null;
+      }
+    | undefined;
 }
+
+export {};

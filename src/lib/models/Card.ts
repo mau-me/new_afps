@@ -1,16 +1,22 @@
 import mongoose from 'mongoose';
 
+export const CARD_STATUSES = ['pendente', 'pago'] as const;
+export type CardStatus = (typeof CARD_STATUSES)[number];
+
+/** Multa por cartão (amarelo/vermelho) aplicada a um jogador. */
 export interface ICard extends mongoose.Document {
   playerId: mongoose.Types.ObjectId;
   description: string;
-  amount: number;
+  /** Valor em centavos (inteiro). */
+  amountCents: number;
   date: Date;
-  status: 'pendente' | 'pago';
+  status: CardStatus;
+  createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
 
-const cardSchema = new mongoose.Schema(
+const cardSchema = new mongoose.Schema<ICard>(
   {
     playerId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -22,10 +28,14 @@ const cardSchema = new mongoose.Schema(
       required: [true, 'Descrição é obrigatória'],
       trim: true,
     },
-    amount: {
+    amountCents: {
       type: Number,
       required: [true, 'Valor é obrigatório'],
       min: 0,
+      validate: {
+        validator: Number.isInteger,
+        message: 'Valor deve ser um inteiro em centavos',
+      },
     },
     date: {
       type: Date,
@@ -33,8 +43,13 @@ const cardSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['pendente', 'pago'],
+      enum: CARD_STATUSES,
       default: 'pendente',
+    },
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
     },
   },
   {
@@ -42,5 +57,7 @@ const cardSchema = new mongoose.Schema(
   }
 );
 
-export default mongoose.models.Card ||
-  mongoose.model<ICard>('Card', cardSchema);
+const Card: mongoose.Model<ICard> =
+  mongoose.models.Card || mongoose.model<ICard>('Card', cardSchema);
+
+export default Card;

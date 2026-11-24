@@ -1,70 +1,81 @@
-// Script para popular o banco de dados com dados iniciais
+// Script para popular o banco de dados com dados iniciais.
+// Uso: npm run seed   (lê MONGODB_URI e SEED_ADMIN_PASSWORD do .env)
+const crypto = require('crypto');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
-// Conectar ao MongoDB
-async function seedDatabase() {
-  try {
-    // Verificar se a variável de ambiente existe
-    if (!process.env.MONGODB_URI) {
-      console.error('MONGODB_URI não encontrada nas variáveis de ambiente');
-      process.exit(1);
-    }
+const ADMIN_EMAIL = (
+  process.env.SEED_ADMIN_EMAIL || 'admin@portodossantos.com'
+).toLowerCase();
 
+// CPFs FICTÍCIOS (dígitos verificadores válidos), apenas para desenvolvimento.
+// Nunca coloque CPFs reais neste arquivo: ele fica no histórico do git.
+const ALLOWED_USERS = [
+  { cpf: '12345678909', name: 'João Silva (teste)' },
+  { cpf: '98765432100', name: 'Pedro Santos (teste)' },
+  { cpf: '11122233396', name: 'Maria Oliveira (teste)' },
+  { cpf: '55566677720', name: 'Carlos Ferreira (teste)' },
+  { cpf: '99988877714', name: 'Ana Costa (teste)' },
+];
+
+async function seedDatabase() {
+  if (!process.env.MONGODB_URI) {
+    console.error('MONGODB_URI não encontrada nas variáveis de ambiente');
+    process.exit(1);
+  }
+
+  try {
     await mongoose.connect(process.env.MONGODB_URI);
     console.log('Conectado ao MongoDB');
 
-    // Criar modelos
+    const { Schema } = mongoose;
+
     const User = mongoose.model(
       'User',
-      {
-        name: String,
-        email: String,
-        password: String,
-        role: String,
-        isActive: Boolean,
-      },
+      new Schema(
+        {
+          name: String,
+          email: { type: String, lowercase: true, unique: true },
+          password: String,
+          role: String,
+          isActive: Boolean,
+        },
+        { timestamps: true }
+      ),
       'users'
     );
 
     const Association = mongoose.model(
       'Association',
-      {
-        name: String,
-        description: String,
-        foundedDate: Date,
-        address: String,
-        phone: String,
-        email: String,
-        logo: String,
-        socialMedia: {
-          facebook: String,
-          twitter: String,
-          instagram: String,
+      new Schema(
+        {
+          name: String,
+          description: String,
+          foundedDate: Date,
+          address: String,
+          phone: String,
+          email: String,
+          socialMedia: { facebook: String, twitter: String, instagram: String },
+          commission: [String],
+          gameSchedule: String,
         },
-        commission: [String],
-        totalPlayers: Number,
-        gameSchedule: String,
-      },
+        { timestamps: true }
+      ),
       'associations'
     );
 
     const AllowedUser = mongoose.model(
       'AllowedUser',
-      {
-        cpf: String,
-        name: String,
-        isUsed: Boolean,
-      },
+      new Schema(
+        { cpf: { type: String, unique: true }, name: String, isUsed: Boolean },
+        { timestamps: true }
+      ),
       'allowedusers'
     );
 
-    // Criar associação
-    let association = await Association.findOne({
-      name: 'Associação de Porto dos Santos',
-    });
-    if (!association) {
-      association = new Association({
+    // Associação (documento único)
+    if (!(await Association.exists({}))) {
+      await Association.create({
         name: 'Associação de Porto dos Santos',
         description:
           'Uma associação de futebol dedicada a promover o esporte e a união entre os membros da comunidade de Porto dos Santos, Itaparica, Bahia.',
@@ -78,63 +89,48 @@ async function seedDatabase() {
           instagram: 'https://instagram.com/portodossantos',
         },
         commission: ['Mauricio Porto', 'Stivie', 'Bugari'],
-        totalPlayers: 0,
         gameSchedule: 'Domingos pela manhã',
       });
-      await association.save();
       console.log('✅ Associação criada!');
     }
 
-    // Criar usuário administrador
-    const adminExists = await User.findOne({
-      email: 'admin@portodossantos.com',
-    });
-    if (!adminExists) {
-      const hashedPassword = await bcrypt.hash('admin123', 12);
+    // Administrador (comissão)
+    let generatedPassword = null;
+    if (!(await User.exists({ email: ADMIN_EMAIL }))) {
+      const password =
+        process.env.SEED_ADMIN_PASSWORD ||
+        (generatedPassword = crypto.randomBytes(12).toString('base64url'));
 
-      const admin = new User({
+      if (password.length < 8) {
+        throw new Error('SEED_ADMIN_PASSWORD deve ter pelo menos 8 caracteres');
+      }
+
+      await User.create({
         name: 'Administrador',
-        email: 'admin@portodossantos.com',
-        password: hashedPassword,
+        email: ADMIN_EMAIL,
+        password: await bcrypt.hash(password, 12),
         role: 'comissao',
         isActive: true,
       });
-
-      await admin.save();
       console.log('✅ Usuário administrador criado!');
     }
 
-    // Criar usuários permitidos (CPFs que podem se cadastrar)
-    const allowedUsers = [
-      { cpf: '12345678901', name: 'João Silva' },
-      { cpf: '98765432100', name: 'Pedro Santos' },
-      { cpf: '11122233344', name: 'Maria Oliveira' },
-      { cpf: '55566677788', name: 'Carlos Ferreira' },
-      { cpf: '99988877766', name: 'Ana Costa' },
-      { cpf: '06468856507', name: 'Mauricio Souza' },
-    ];
-
-    for (const userData of allowedUsers) {
-      const exists = await AllowedUser.findOne({ cpf: userData.cpf });
-      if (!exists) {
-        const allowedUser = new AllowedUser({
-          cpf: userData.cpf,
-          name: userData.name,
-          isUsed: false,
-        });
-        await allowedUser.save();
-      }
+    // CPFs liberados para cadastro
+    for (const { cpf, name } of ALLOWED_USERS) {
+      await AllowedUser.updateOne(
+        { cpf },
+        { $setOnInsert: { cpf, name, isUsed: false } },
+        { upsert: true }
+      );
     }
-    console.log('✅ Usuários permitidos criados!');
+    console.log('✅ CPFs de teste liberados!');
 
     console.log('\n🎉 Seed concluído com sucesso!');
-    console.log('\n📋 Resumo:');
-    console.log('- Associação: Associação de Porto dos Santos');
-    console.log('- URL: http://localhost:3000');
-    console.log('- Admin: admin@portodossantos.com / admin123');
-    console.log(
-      '- CPFs permitidos: 12345678901, 98765432100, 11122233344, 55566677788, 99988877766'
-    );
+    console.log(`- Admin: ${ADMIN_EMAIL}`);
+    if (generatedPassword) {
+      console.log(`- Senha gerada (anote, não será exibida de novo): ${generatedPassword}`);
+    }
+    console.log(`- CPFs de teste: ${ALLOWED_USERS.map((u) => u.cpf).join(', ')}`);
 
     await mongoose.connection.close();
     process.exit(0);

@@ -1,18 +1,23 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
+import { PASSWORD_MIN_LENGTH } from '@/lib/validation';
+
+export const USER_ROLES = ['comissao', 'jogador'] as const;
+export type UserRole = (typeof USER_ROLES)[number];
 
 export interface IUser extends mongoose.Document {
   name: string;
   email: string;
   password: string;
-  role: 'comissao' | 'jogador';
+  cpf?: string;
+  role: UserRole;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 
-const userSchema = new mongoose.Schema(
+const userSchema = new mongoose.Schema<IUser>(
   {
     name: {
       type: String,
@@ -29,11 +34,19 @@ const userSchema = new mongoose.Schema(
     password: {
       type: String,
       required: [true, 'Senha é obrigatória'],
-      minlength: 6,
+      minlength: PASSWORD_MIN_LENGTH,
+      select: false,
+    },
+    // Apenas dígitos. Opcional para contas administrativas criadas pelo seed.
+    cpf: {
+      type: String,
+      unique: true,
+      sparse: true,
+      match: [/^\d{11}$/, 'CPF deve conter 11 dígitos'],
     },
     role: {
       type: String,
-      enum: ['comissao', 'jogador'],
+      enum: USER_ROLES,
       default: 'jogador',
     },
     isActive: {
@@ -50,8 +63,7 @@ userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
 
   try {
-    const salt = await bcrypt.genSalt(12);
-    this.password = await bcrypt.hash(this.password, salt);
+    this.password = await bcrypt.hash(this.password, 12);
     next();
   } catch (error) {
     next(error as mongoose.Error);
@@ -64,5 +76,7 @@ userSchema.methods.comparePassword = async function (
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-export default mongoose.models.User ||
-  mongoose.model<IUser>('User', userSchema);
+const User: mongoose.Model<IUser> =
+  mongoose.models.User || mongoose.model<IUser>('User', userSchema);
+
+export default User;
