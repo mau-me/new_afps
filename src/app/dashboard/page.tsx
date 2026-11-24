@@ -1,6 +1,6 @@
 import type React from 'react';
 import Link from 'next/link';
-import { Plus, UserPlus, UserRound, Users, Wallet } from 'lucide-react';
+import { FileText, Plus, UserPlus, UserRound, Users, Wallet } from 'lucide-react';
 import { OverdueDetail, ScoreCell, ScoreStrip } from '@/components/score-strip';
 import { Navbar } from '@/components/navbar';
 import { Button } from '@/components/ui/button';
@@ -223,6 +223,12 @@ export default async function DashboardPage() {
                     <Link href='/financial/transactions/new'>
                       <Plus />
                       Novo lançamento
+                    </Link>
+                  </Button>
+                  <Button className='justify-start' variant='outline' asChild>
+                    <Link href='/reports'>
+                      <FileText />
+                      Prestação de contas
                     </Link>
                   </Button>
                   <Button className='justify-start' variant='outline' asChild>

@@ -171,6 +171,13 @@
     color: var(--tinta);
   }
 
+  /* Impressão (prestação de contas): fundo branco */
+  @media print {
+    body {
+      background: #fff;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,

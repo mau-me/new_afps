@@ -2,7 +2,13 @@ import { NextResponse } from 'next/server';
 import { withAuth } from 'next-auth/middleware';
 
 /** Rotas exclusivas da comissão. */
-const COMMISSION_ONLY = ['/players/new', '/financial', '/settings', '/admin'];
+const COMMISSION_ONLY = [
+  '/players/new',
+  '/financial',
+  '/reports',
+  '/settings',
+  '/admin',
+];
 
 /** Edição de ficha: /players/<id>/edit */
 const PLAYER_EDIT = /^\/players\/[^/]+\/edit\/?$/;
@@ -44,6 +50,7 @@ export const config = {
     '/players/:path*',
     '/financial/:path*',
     '/me/:path*',
+    '/reports/:path*',
     '/settings/:path*',
     '/admin/:path*',
   ],

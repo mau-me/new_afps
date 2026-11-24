@@ -45,7 +45,8 @@ exibida **uma única vez** no terminal.
 ## Papéis e fluxo de cadastro
 
 - **Comissão** (`comissao`): administra jogadores e finanças.
-- **Jogador** (`jogador`): vê o dashboard e a lista de jogadores.
+- **Jogador** (`jogador`): vê o dashboard, a lista de jogadores e, em
+  **Minha área**, as próprias mensalidades, cartões e ficha.
 
 Ninguém se cadastra sem autorização:
 
@@ -95,6 +96,17 @@ Em **Cartões** ficam as multas por cartão amarelo e vermelho.
 - Só multas pendentes podem ser excluídas (para registros feitos por engano).
 - O jogador vê os próprios cartões em **Minha área**.
 
+## Relatórios
+
+Em **Relatórios** (só a comissão) fica a prestação de contas do mês: saldo
+anterior, entradas e saídas por categoria, saldo final, situação das
+mensalidades, lista de quem está com mensalidade vencida (todos os meses) e
+todos os lançamentos em ordem cronológica.
+
+- **Imprimir ou salvar PDF:** a página tem layout próprio para impressão.
+- **Planilha (CSV):** lançamentos do mês num arquivo que o Excel e o Google
+  Planilhas abrem direto (separador `;`, vírgula decimal, acentos corretos).
+
 ## Configurações
 
 Em **Configurações** (só a comissão):
@@ -117,7 +129,11 @@ src/
   app/                  rotas (App Router)
     api/auth/           NextAuth e cadastro
     dashboard/          painel
-    players/            lista e cadastro de jogadores
+    players/            lista, ficha, cadastro e edição de jogadores
+    me/                 área do jogador
+    financial/          caixa, mensalidades e cartões
+    reports/            prestação de contas (página e CSV)
+    settings/           associação, usuários e CPFs liberados
   components/           navbar e componentes de UI (shadcn)
   lib/
     actions/            server actions (sempre com checagem de papel)

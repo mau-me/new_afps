@@ -29,6 +29,7 @@ import {
   Wallet,
   UserRound,
   Settings,
+  FileText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -43,6 +44,12 @@ const navigation = [
     name: 'Financeiro',
     href: '/financial',
     icon: Wallet,
+    commissionOnly: true,
+  },
+  {
+    name: 'Relatórios',
+    href: '/reports',
+    icon: FileText,
     commissionOnly: true,
   },
   {
