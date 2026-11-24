@@ -1,6 +1,6 @@
 import type React from 'react';
 import Link from 'next/link';
-import { Plus, UserPlus, Users, Wallet } from 'lucide-react';
+import { Plus, UserPlus, UserRound, Users, Wallet } from 'lucide-react';
 import { OverdueDetail, ScoreCell, ScoreStrip } from '@/components/score-strip';
 import { Navbar } from '@/components/navbar';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import Monthly, { overdueFilter } from '@/lib/models/Monthly';
 import Transaction, { activeFilter } from '@/lib/models/Transaction';
 import { currentReferenceMonth, monthRange } from '@/lib/months';
 import { requireSession } from '@/lib/session';
+import { getPlayerByUserId, getPlayerFinancials } from '@/lib/data/players';
 import { cn, formatCents } from '@/lib/utils';
 
 async function getPlayerStats() {
@@ -84,10 +85,13 @@ export default async function DashboardPage() {
   const isCommission = session.user.role === 'comissao';
 
   await dbConnect();
-  const [players, finance] = await Promise.all([
+  const [players, finance, myPlayer] = await Promise.all([
     getPlayerStats(),
     isCommission ? getFinancialStats() : Promise.resolve(null),
+    isCommission ? Promise.resolve(null) : getPlayerByUserId(session.user.id),
   ]);
+  // Jogador: a própria situação aparece no placar.
+  const mine = myPlayer ? await getPlayerFinancials(myPlayer.id) : null;
 
   const firstName = session.user.name?.split(' ')[0];
 
@@ -107,7 +111,11 @@ export default async function DashboardPage() {
           </Badge>
         </header>
 
-        <ScoreStrip label='Resumo' columns={finance ? 4 : 1} className='mb-8'>
+        <ScoreStrip
+          label='Resumo'
+          columns={finance ? 4 : mine ? 2 : 1}
+          className='mb-8'
+        >
           <ScoreCell
             value={players.totalPlayers}
             label='Jogadores'
@@ -121,6 +129,28 @@ export default async function DashboardPage() {
               </>
             }
           />
+          {mine && (
+            <ScoreCell
+              value={formatCents(mine.openCents)}
+              label='Minhas mensalidades'
+              href='/me'
+              tone={mine.overdueCount > 0 ? 'negative' : 'default'}
+              detail={
+                mine.openCount === 0 ? (
+                  'Tudo em dia'
+                ) : (
+                  <>
+                    {mine.openCount} em aberto
+                    {mine.overdueCount > 0 && (
+                      <>
+                        , <OverdueDetail count={mine.overdueCount} />
+                      </>
+                    )}
+                  </>
+                )
+              }
+            />
+          )}
           {finance && (
             <>
               <ScoreCell
@@ -202,6 +232,14 @@ export default async function DashboardPage() {
                     </Link>
                   </Button>
                 </>
+              )}
+              {!isCommission && (
+                <Button className='justify-start' asChild>
+                  <Link href='/me'>
+                    <UserRound />
+                    Minha área
+                  </Link>
+                </Button>
               )}
               <Button className='justify-start' variant='outline' asChild>
                 <Link href='/players'>

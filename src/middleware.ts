@@ -39,6 +39,7 @@ export const config = {
     '/dashboard/:path*',
     '/players/:path*',
     '/financial/:path*',
+    '/me/:path*',
     '/settings/:path*',
     '/admin/:path*',
   ],

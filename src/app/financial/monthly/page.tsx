@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { FilterTabs } from '@/components/filter-tabs';
 import { MonthNav } from '@/components/month-nav';
+import { MonthlyStatusBadge } from '@/components/monthly-status-badge';
 import { Navbar } from '@/components/navbar';
 import {
   OverdueDetail,
@@ -8,7 +9,6 @@ import {
   ScoreStrip,
 } from '@/components/score-strip';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -24,7 +24,6 @@ import {
   listMonthlies,
   parseMonthlyFilter,
   type MonthlyFilter,
-  type MonthlyRow,
 } from '@/lib/data/monthly';
 import {
   formatLocalDate,
@@ -40,18 +39,6 @@ import { SettingsForm } from './settings-form';
 
 function centsToInput(cents: number) {
   return cents > 0 ? (cents / 100).toFixed(2).replace('.', ',') : '';
-}
-
-function StatusBadge({ row }: { row: MonthlyRow }) {
-  if (row.status === 'pago') {
-    return (
-      <Badge variant='success'>
-        Paga{row.paymentDate && ` em ${formatLocalDate(row.paymentDate)}`}
-      </Badge>
-    );
-  }
-  if (row.isOverdue) return <Badge variant='destructive'>Vencida</Badge>;
-  return <Badge variant='warning'>Em aberto</Badge>;
 }
 
 export default async function MonthlyPage({
@@ -274,7 +261,11 @@ export default async function MonthlyPage({
                           {formatLocalDate(row.dueDate)}
                         </TableCell>
                         <TableCell>
-                          <StatusBadge row={row} />
+                          <MonthlyStatusBadge
+                            status={row.status}
+                            isOverdue={row.isOverdue}
+                            paymentDate={row.paymentDate}
+                          />
                         </TableCell>
                         <TableCell className='pr-6'>
                           <div className='flex justify-end'>

@@ -21,7 +21,15 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import { Menu, Users, LogOut, Home, Wallet, Landmark } from 'lucide-react';
+import {
+  Menu,
+  Users,
+  LogOut,
+  Home,
+  Wallet,
+  Landmark,
+  UserRound,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 // Adicione aqui novos módulos (Financeiro, Relatórios, Configurações...)
@@ -29,6 +37,7 @@ import { cn } from '@/lib/utils';
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },
   { name: 'Jogadores', href: '/players', icon: Users },
+  { name: 'Minha área', href: '/me', icon: UserRound },
   {
     name: 'Mensalidades',
     href: '/financial/monthly',
