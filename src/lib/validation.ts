@@ -181,6 +181,85 @@ export const cardSchema = z.object({
   description: z.string().trim().max(140, 'Use no máximo 140 caracteres'),
 });
 
+const optionalUrl = z
+  .string()
+  .trim()
+  .refine(
+    (v) => v === '' || /^https:\/\/[^\s]+\.[^\s]+$/i.test(v),
+    'Use um endereço completo começando com https://'
+  );
+
+export const associationSchema = z.object({
+  name: z.string().trim().min(3, 'Informe o nome da associação').max(120),
+  description: z
+    .string()
+    .trim()
+    .min(10, 'Escreva uma descrição de pelo menos 10 caracteres')
+    .max(600, 'Use no máximo 600 caracteres'),
+  address: z.string().trim().min(5, 'Informe o endereço').max(200),
+  phone: z
+    .string()
+    .transform(onlyDigits)
+    .refine((v) => v.length === 10 || v.length === 11, 'Telefone inválido'),
+  email: z.string().trim().toLowerCase().pipe(z.email('Email inválido')),
+  gameSchedule: z.string().trim().min(3, 'Informe quando são os jogos').max(80),
+  /** Um nome por linha. */
+  commission: z
+    .string()
+    .transform((v) =>
+      v
+        .split('\n')
+        .map((name) => name.trim())
+        .filter(Boolean)
+    )
+    .refine((list) => list.length <= 12, 'Liste no máximo 12 nomes'),
+  facebook: optionalUrl,
+  twitter: optionalUrl,
+  instagram: optionalUrl,
+});
+
+/** Valor opcional em reais ("" = sem valor padrão = 0). */
+const optionalCents = z.string().transform((v, ctx) => {
+  if (v.trim() === '') return 0;
+  const cents = parseCurrencyToCents(v.replace(/^R\$\s*/i, ''));
+  if (cents === null) {
+    ctx.addIssue({ code: 'custom', message: 'Valor inválido, use algo como 10,00' });
+    return z.NEVER;
+  }
+  return cents;
+});
+
+export const feesSchema = z.object({
+  monthlyFee: optionalCents,
+  dueDay: z.coerce
+    .number('Informe o dia do vencimento')
+    .int('Informe um dia entre 1 e 28')
+    .min(1, 'Informe um dia entre 1 e 28')
+    .max(28, 'Informe um dia entre 1 e 28'),
+  yellowCardFee: optionalCents,
+  redCardFee: optionalCents,
+});
+
+export const allowCpfSchema = z.object({
+  name: z.string().trim().min(3, 'Informe o nome').max(120),
+  cpf: cpfSchema,
+});
+
+export const USER_ROLE_VALUES = ['comissao', 'jogador'] as const;
+
+export const createUserSchema = z.object({
+  name: z.string().trim().min(3, 'Informe o nome').max(120),
+  email: z.string().trim().toLowerCase().pipe(z.email('Email inválido')),
+  password: z
+    .string()
+    .min(
+      PASSWORD_MIN_LENGTH,
+      `A senha deve ter pelo menos ${PASSWORD_MIN_LENGTH} caracteres`
+    )
+    .max(128),
+  role: z.enum(USER_ROLE_VALUES, 'Escolha o papel'),
+});
+
 /** Converte erros do zod em { campo: mensagem } (primeira mensagem por campo). */
 export function fieldErrors(error: z.ZodError): Record<string, string> {
   const result: Record<string, string> = {};

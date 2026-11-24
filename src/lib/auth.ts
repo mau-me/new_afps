@@ -3,6 +3,7 @@ import type { NextAuthOptions } from 'next-auth';
 import dbConnect from './mongodb';
 import User from './models/User';
 import { getClientIp, rateLimit } from './rate-limit';
+import { getUserStatus } from './user-status';
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -62,6 +63,25 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.role = user.role;
+        token.disabled = false;
+        return token;
+      }
+
+      // Revalida a conta: desativação e mudança de papel valem sem esperar
+      // o token expirar.
+      if (token.sub) {
+        try {
+          const status = await getUserStatus(token.sub);
+          if (!status || !status.isActive) {
+            token.disabled = true;
+          } else {
+            token.disabled = false;
+            token.role = status.role;
+          }
+        } catch (error) {
+          // Falha momentânea do banco não derruba quem já está logado.
+          console.error('Erro ao revalidar sessão:', error);
+        }
       }
       return token;
     },
@@ -70,6 +90,7 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.sub;
       }
       session.user.role = token.role ?? 'jogador';
+      session.disabled = Boolean(token.disabled);
       return session;
     },
   },

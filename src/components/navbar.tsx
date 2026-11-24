@@ -28,6 +28,7 @@ import {
   Home,
   Wallet,
   UserRound,
+  Settings,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -42,6 +43,12 @@ const navigation = [
     name: 'Financeiro',
     href: '/financial',
     icon: Wallet,
+    commissionOnly: true,
+  },
+  {
+    name: 'Configurações',
+    href: '/settings',
+    icon: Settings,
     commissionOnly: true,
   },
 ];
@@ -94,7 +101,7 @@ export function Navbar() {
           </Link>
 
           {/* Navegação desktop: o item ativo ganha um sublinhado amarelo */}
-          <div className='hidden h-14 items-stretch gap-6 md:flex'>
+          <div className='hidden h-14 items-stretch gap-6 lg:flex'>
             {items.map((item) => (
               <Link
                 key={item.name}
@@ -121,7 +128,7 @@ export function Navbar() {
                   <Button
                     variant='ghost'
                     size='icon'
-                    className='text-primary-foreground hover:bg-primary-foreground/10 focus-visible:outline-primary-foreground md:hidden'
+                    className='text-primary-foreground hover:bg-primary-foreground/10 focus-visible:outline-primary-foreground lg:hidden'
                   >
                     <Menu className='!size-5' />
                     <span className='sr-only'>Abrir menu</span>

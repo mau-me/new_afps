@@ -27,8 +27,8 @@ export default withAuth(
   },
   {
     callbacks: {
-      // Sem login: o NextAuth redireciona para /login com callbackUrl.
-      authorized: ({ token }) => Boolean(token),
+      // Sem login (ou conta desativada): vai para /login com callbackUrl.
+      authorized: ({ token }) => Boolean(token) && !token?.disabled,
     },
     pages: {
       signIn: '/login',

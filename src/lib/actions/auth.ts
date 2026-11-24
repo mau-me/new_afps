@@ -1,57 +1,126 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { z } from 'zod';
 import dbConnect from '@/lib/mongodb';
-import User, { USER_ROLES } from '@/lib/models/User';
+import User, { type UserRole } from '@/lib/models/User';
+import { invalidateUserStatus } from '@/lib/user-status';
 import { assertRole } from '@/lib/session';
-import { PASSWORD_MIN_LENGTH } from '@/lib/validation';
+import {
+  USER_ROLE_VALUES,
+  createUserSchema,
+  fieldErrors,
+  objectIdSchema,
+} from '@/lib/validation';
 
 /*
  * Server actions são endpoints HTTP públicos: qualquer um pode chamá-las.
  * Toda action aqui exige sessão da comissão via `assertRole`.
  */
 
-const createUserSchema = z.object({
-  name: z.string().trim().min(3).max(120),
-  email: z.string().trim().toLowerCase().pipe(z.email()),
-  password: z.string().min(PASSWORD_MIN_LENGTH).max(128),
-  role: z.enum(USER_ROLES),
-});
+export type UserFormState = {
+  ok?: boolean;
+  message?: string;
+  errors?: Record<string, string>;
+  values?: Record<string, string>;
+};
 
-export async function createUser(formData: FormData) {
+export type ActionResult = { ok: boolean; message: string };
+
+/** Cria uma conta diretamente (ex.: novo membro da comissão). */
+export async function createUser(
+  _prev: UserFormState,
+  formData: FormData
+): Promise<UserFormState> {
   await assertRole('comissao');
 
-  const parsed = createUserSchema.safeParse(Object.fromEntries(formData));
+  const values = {
+    name: String(formData.get('name') ?? ''),
+    email: String(formData.get('email') ?? ''),
+    password: String(formData.get('password') ?? ''),
+    role: String(formData.get('role') ?? ''),
+  };
+  const parsed = createUserSchema.safeParse(values);
+  // A senha nunca volta para o formulário.
+  const safeValues = { ...values, password: '' };
   if (!parsed.success) {
-    return { success: false, message: parsed.error.issues[0]?.message };
+    return { errors: fieldErrors(parsed.error), values: safeValues };
   }
 
   await dbConnect();
-
   if (await User.exists({ email: parsed.data.email })) {
-    return { success: false, message: 'Usuário já existe com este email' };
+    return { errors: { email: 'Já existe uma conta com este email' }, values: safeValues };
   }
 
   await User.create(parsed.data);
   revalidatePath('/settings/users');
-
-  return { success: true, message: 'Usuário criado com sucesso' };
+  return { ok: true, message: `Conta de ${parsed.data.name} criada.` };
 }
 
-export async function updateUserStatus(userId: string, isActive: boolean) {
+/** Quantos membros ativos da comissão existem, sem contar `exceptId`. */
+async function otherActiveCommission(exceptId: string) {
+  return User.countDocuments({ role: 'comissao', isActive: true, _id: { $ne: exceptId } });
+}
+
+export async function updateUserStatus(
+  userId: string,
+  isActive: boolean
+): Promise<ActionResult> {
   const session = await assertRole('comissao');
 
-  if (!z.string().regex(/^[a-f\d]{24}$/i).safeParse(userId).success) {
-    return { success: false, message: 'Usuário inválido' };
-  }
-  if (userId === session.user.id && !isActive) {
-    return { success: false, message: 'Você não pode desativar a si mesmo' };
+  const id = objectIdSchema.safeParse(userId);
+  if (!id.success) return { ok: false, message: 'Usuário inválido.' };
+  if (id.data === session.user.id && !isActive) {
+    return { ok: false, message: 'Você não pode desativar a própria conta.' };
   }
 
   await dbConnect();
-  await User.findByIdAndUpdate(userId, { isActive: Boolean(isActive) });
+  const user = await User.findById(id.data).select('role name').lean();
+  if (!user) return { ok: false, message: 'Usuário não encontrado.' };
+
+  if (!isActive && user.role === 'comissao' && (await otherActiveCommission(id.data)) === 0) {
+    return { ok: false, message: 'É preciso manter pelo menos um membro ativo na comissão.' };
+  }
+
+  await User.updateOne({ _id: id.data }, { $set: { isActive: Boolean(isActive) } });
+  invalidateUserStatus(id.data);
   revalidatePath('/settings/users');
 
-  return { success: true, message: 'Status do usuário atualizado' };
+  return {
+    ok: true,
+    message: isActive
+      ? `Conta de ${user.name} reativada.`
+      : `Conta de ${user.name} desativada. O acesso é bloqueado em instantes.`,
+  };
+}
+
+export async function setUserRole(userId: string, role: UserRole): Promise<ActionResult> {
+  const session = await assertRole('comissao');
+
+  const id = objectIdSchema.safeParse(userId);
+  if (!id.success || !USER_ROLE_VALUES.includes(role)) {
+    return { ok: false, message: 'Dados inválidos.' };
+  }
+  if (id.data === session.user.id) {
+    return { ok: false, message: 'Você não pode mudar o próprio papel.' };
+  }
+
+  await dbConnect();
+  const user = await User.findById(id.data).select('role name').lean();
+  if (!user) return { ok: false, message: 'Usuário não encontrado.' };
+
+  if (role === 'jogador' && user.role === 'comissao' && (await otherActiveCommission(id.data)) === 0) {
+    return { ok: false, message: 'É preciso manter pelo menos um membro ativo na comissão.' };
+  }
+
+  await User.updateOne({ _id: id.data }, { $set: { role } });
+  invalidateUserStatus(id.data);
+  revalidatePath('/settings/users');
+
+  return {
+    ok: true,
+    message:
+      role === 'comissao'
+        ? `${user.name} agora faz parte da comissão.`
+        : `${user.name} agora é jogador.`,
+  };
 }

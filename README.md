@@ -95,6 +95,21 @@ Em **Cartões** ficam as multas por cartão amarelo e vermelho.
 - Só multas pendentes podem ser excluídas (para registros feitos por engano).
 - O jogador vê os próprios cartões em **Minha área**.
 
+## Configurações
+
+Em **Configurações** (só a comissão):
+
+- **Associação:** dados públicos (aparecem na página inicial) e valores:
+  mensalidade, dia de vencimento e multas padrão dos cartões.
+- **Usuários:** criar contas (ex.: novo membro da comissão), mudar o papel e
+  desativar acessos. A comissão nunca fica sem pelo menos um membro ativo, e
+  ninguém altera a própria conta.
+- **CPFs liberados:** quem pode criar conta. Cadastrar um jogador já libera o
+  CPF dele.
+
+Desativar uma conta ou mudar o papel vale em até um minuto, sem esperar o
+login expirar: a sessão é revalidada no servidor (`lib/user-status.ts`).
+
 ## Estrutura
 
 ```

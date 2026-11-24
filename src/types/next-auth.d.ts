@@ -11,6 +11,8 @@ declare module 'next-auth' {
       image?: string | null;
       role: UserRole;
     };
+    /** Conta desativada (ou removida) depois do login. */
+    disabled?: boolean;
   }
 
   interface User {
@@ -21,5 +23,6 @@ declare module 'next-auth' {
 declare module 'next-auth/jwt' {
   interface JWT {
     role?: UserRole;
+    disabled?: boolean;
   }
 }

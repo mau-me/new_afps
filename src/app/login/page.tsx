@@ -20,6 +20,7 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   // Só aceita caminhos internos, para evitar open redirect.
+  const accountDisabled = searchParams.get('error') === 'disabled';
   const requested = searchParams.get('callbackUrl') ?? '';
   const callbackUrl =
     requested.startsWith('/') && !requested.startsWith('//')
@@ -82,6 +83,15 @@ function LoginForm() {
           required
         />
       </div>
+
+      {accountDisabled && !error && (
+        <Alert variant='warning'>
+          <AlertDescription>
+            Sua conta foi desativada pela comissão. Fale com ela para voltar a
+            ter acesso.
+          </AlertDescription>
+        </Alert>
+      )}
 
       {error && (
         <Alert variant='destructive'>

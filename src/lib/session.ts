@@ -9,10 +9,11 @@ export function getSession() {
   return getServerSession(authOptions);
 }
 
-/** Para páginas: redireciona para /login se não houver sessão. */
+/** Para páginas: redireciona para /login se não houver sessão válida. */
 export async function requireSession(): Promise<Session> {
   const session = await getSession();
   if (!session) redirect('/login');
+  if (session.disabled) redirect('/login?error=disabled');
   return session;
 }
 
@@ -37,6 +38,7 @@ export class AuthorizationError extends Error {
 export async function assertRole(role: UserRole): Promise<Session> {
   const session = await getSession();
   if (!session) throw new AuthorizationError('Faça login para continuar');
+  if (session.disabled) throw new AuthorizationError('Conta desativada');
   if (session.user.role !== role) throw new AuthorizationError();
   return session;
 }

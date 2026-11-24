@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getAssociationData } from '@/lib/data/association';
+import { formatPhone } from '@/lib/utils';
 
 // Sempre busca dados atuais (contagem de jogadores etc.), sem prerender no build.
 export const dynamic = 'force-dynamic';
@@ -204,7 +205,7 @@ export default async function HomePage() {
                   href={`tel:${association.phone.replace(/\D/g, '')}`}
                   className='font-medium break-all underline decoration-border underline-offset-4 hover:decoration-primary'
                 >
-                  {association.phone}
+                  {formatPhone(association.phone)}
                 </a>
               </li>
               <li className='flex items-center gap-2'>
