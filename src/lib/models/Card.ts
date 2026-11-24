@@ -4,14 +4,21 @@ import { defineModel } from './define-model';
 export const CARD_STATUSES = ['pendente', 'pago'] as const;
 export type CardStatus = (typeof CARD_STATUSES)[number];
 
+export const CARD_COLORS = ['amarelo', 'vermelho'] as const;
+export type CardColor = (typeof CARD_COLORS)[number];
+
 /** Multa por cartão (amarelo/vermelho) aplicada a um jogador. */
 export interface ICard extends mongoose.Document {
   playerId: mongoose.Types.ObjectId;
+  color: CardColor;
+  /** Contexto opcional, ex.: "Jogo contra o Mar Grande". */
   description: string;
-  /** Valor em centavos (inteiro). */
+  /** Valor da multa em centavos (inteiro). */
   amountCents: number;
+  /** Data em que o cartão foi recebido. */
   date: Date;
   status: CardStatus;
+  paymentDate?: Date;
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -24,10 +31,15 @@ const cardSchema = new mongoose.Schema<ICard>(
       ref: 'Player',
       required: true,
     },
+    color: {
+      type: String,
+      enum: CARD_COLORS,
+      required: [true, 'Cor do cartão é obrigatória'],
+    },
     description: {
       type: String,
-      required: [true, 'Descrição é obrigatória'],
       trim: true,
+      default: '',
     },
     amountCents: {
       type: Number,
@@ -47,6 +59,9 @@ const cardSchema = new mongoose.Schema<ICard>(
       enum: CARD_STATUSES,
       default: 'pendente',
     },
+    paymentDate: {
+      type: Date,
+    },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
@@ -57,6 +72,9 @@ const cardSchema = new mongoose.Schema<ICard>(
     timestamps: true,
   }
 );
+
+cardSchema.index({ playerId: 1, date: -1 });
+cardSchema.index({ status: 1, date: -1 });
 
 const Card = defineModel<ICard>('Card', cardSchema);
 

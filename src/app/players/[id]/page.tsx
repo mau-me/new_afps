@@ -1,7 +1,9 @@
 import type React from 'react';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { ArrowLeft, Pencil } from 'lucide-react';
+import { ArrowLeft, Pencil, Plus } from 'lucide-react';
+import { CardList } from '@/components/card-list';
+import { listPlayerCards } from '@/lib/data/cards';
 import { MonthlyHistory } from '@/components/monthly-history';
 import { Navbar } from '@/components/navbar';
 import {
@@ -47,7 +49,14 @@ export default async function PlayerPage({
   const player = await getPlayerById(id, { includePersonal: isCommission });
   if (!player || (!isCommission && !player.isActive)) notFound();
 
-  const finance = isCommission ? await getPlayerFinancials(player.id) : null;
+  const [finance, cards] = isCommission
+    ? await Promise.all([
+        getPlayerFinancials(player.id),
+        listPlayerCards(player.id),
+      ])
+    : [null, []];
+  const pendingCards = cards.filter((c) => c.status === 'pendente');
+  const pendingCardsCents = pendingCards.reduce((s, c) => s + c.amountCents, 0);
 
   return (
     <div className='min-h-screen'>
@@ -106,7 +115,7 @@ export default async function PlayerPage({
 
         {finance && (
           <>
-            <ScoreStrip label='Situação financeira' columns={3} className='mb-8'>
+            <ScoreStrip label='Situação financeira' columns={4} className='mb-8'>
               <ScoreCell
                 value={formatCents(finance.openCents)}
                 label='Em aberto'
@@ -123,6 +132,12 @@ export default async function PlayerPage({
                 value={finance.paidCount}
                 label='Pagas'
                 detail='Mensalidades quitadas'
+              />
+              <ScoreCell
+                value={formatCents(pendingCardsCents)}
+                label='Multas pendentes'
+                detail={`${pendingCards.length} ${pendingCards.length === 1 ? 'cartão' : 'cartões'} a pagar`}
+                tone={pendingCardsCents > 0 ? 'negative' : 'default'}
               />
             </ScoreStrip>
 
@@ -157,6 +172,24 @@ export default async function PlayerPage({
                 </dl>
               </section>
             </div>
+
+            <section className='mt-8 rounded-lg border bg-card'>
+              <div className='flex flex-wrap items-center justify-between gap-4 px-6 pt-6 pb-2'>
+                <h2 className='heading text-lg'>Cartões</h2>
+                <Button variant='outline' size='sm' asChild>
+                  <Link href={`/financial/cards/new?player=${player.id}`}>
+                    <Plus />
+                    Registrar cartão
+                  </Link>
+                </Button>
+              </div>
+              <CardList
+                cards={cards}
+                showPlayer={false}
+                manage
+                emptyMessage='Nenhum cartão registrado.'
+              />
+            </section>
           </>
         )}
       </main>

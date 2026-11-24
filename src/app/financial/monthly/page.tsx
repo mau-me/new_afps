@@ -1,6 +1,9 @@
 import Link from 'next/link';
 import { FilterTabs } from '@/components/filter-tabs';
+import { FinancialTabs } from '@/components/financial-tabs';
 import { MonthNav } from '@/components/month-nav';
+import { PaymentControls } from '@/components/payment-controls';
+import { registerPayment, undoPayment } from '@/lib/actions/monthly';
 import { MonthlyStatusBadge } from '@/components/monthly-status-badge';
 import { Navbar } from '@/components/navbar';
 import {
@@ -34,7 +37,6 @@ import {
 import { requireRole } from '@/lib/session';
 import { formatCents } from '@/lib/utils';
 import { GenerateButton } from './generate-button';
-import { PaymentActions } from './payment-actions';
 import { SettingsForm } from './settings-form';
 
 function centsToInput(cents: number) {
@@ -80,6 +82,8 @@ export default async function MonthlyPage({
     <div className='min-h-screen'>
       <Navbar />
       <main className='mx-auto max-w-6xl px-4 py-8 md:py-12'>
+        <FinancialTabs active='mensalidades' />
+
         {/* Cabeçalho com navegação entre meses */}
         <header className='mb-8 flex flex-wrap items-end justify-between gap-4'>
           <div>
@@ -269,10 +273,13 @@ export default async function MonthlyPage({
                         </TableCell>
                         <TableCell className='pr-6'>
                           <div className='flex justify-end'>
-                            <PaymentActions
-                              monthlyId={row.id}
-                              status={row.status}
-                              nickname={row.player.nickname}
+                            <PaymentControls
+                              id={row.id}
+                              isPaid={row.status === 'pago'}
+                              pay={registerPayment.bind(null, row.id)}
+                              undo={undoPayment.bind(null, row.id)}
+                              dateLabel={`Data do pagamento de ${row.player.nickname}`}
+                              undoConfirm={`Desfazer o pagamento de ${row.player.nickname}? A entrada no caixa também será removida.`}
                             />
                           </div>
                         </TableCell>

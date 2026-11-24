@@ -25,6 +25,8 @@ export type TransactionRow = {
   isAutomatic: boolean;
   /** Mês de referência da mensalidade que gerou o lançamento, se houver. */
   monthlyMonth: string | null;
+  /** Gerado pelo pagamento de um cartão (multa). */
+  fromCard: boolean;
 };
 
 export async function listTransactions(
@@ -53,8 +55,9 @@ export async function listTransactions(
     amountCents: t.amountCents,
     date: t.date.toISOString(),
     description: t.description,
-    isAutomatic: Boolean(t.monthlyId),
+    isAutomatic: Boolean(t.monthlyId || t.cardId),
     monthlyMonth: t.monthlyId?.referenceMonth ?? null,
+    fromCard: Boolean(t.cardId),
   }));
 }
 

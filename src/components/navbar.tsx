@@ -27,7 +27,6 @@ import {
   LogOut,
   Home,
   Wallet,
-  Landmark,
   UserRound,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -39,15 +38,10 @@ const navigation = [
   { name: 'Jogadores', href: '/players', icon: Users },
   { name: 'Minha área', href: '/me', icon: UserRound },
   {
-    name: 'Mensalidades',
-    href: '/financial/monthly',
-    icon: Wallet,
-    commissionOnly: true,
-  },
-  {
-    name: 'Caixa',
+    // Caixa, Mensalidades e Cartões ficam em abas dentro do Financeiro.
+    name: 'Financeiro',
     href: '/financial',
-    icon: Landmark,
+    icon: Wallet,
     commissionOnly: true,
   },
 ];

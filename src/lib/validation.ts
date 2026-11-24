@@ -160,6 +160,27 @@ export const transactionSchema = z
     }
   });
 
+/** Categoria das entradas geradas pelo pagamento de cartões. */
+export const CARD_CATEGORY = 'Multa';
+
+const centsField = (message: string) =>
+  z.string().transform((v, ctx) => {
+    const cents = parseCurrencyToCents(v.replace(/^R\$\s*/i, ''));
+    if (cents === null || cents <= 0) {
+      ctx.addIssue({ code: 'custom', message });
+      return z.NEVER;
+    }
+    return cents;
+  });
+
+export const cardSchema = z.object({
+  playerId: z.string().min(1, 'Escolha o jogador').pipe(objectIdSchema),
+  color: z.enum(['amarelo', 'vermelho'], 'Escolha a cor do cartão'),
+  amount: centsField('Informe o valor da multa, como 10 ou 10,00'),
+  date: pastDateSchema,
+  description: z.string().trim().max(140, 'Use no máximo 140 caracteres'),
+});
+
 /** Converte erros do zod em { campo: mensagem } (primeira mensagem por campo). */
 export function fieldErrors(error: z.ZodError): Record<string, string> {
   const result: Record<string, string> = {};

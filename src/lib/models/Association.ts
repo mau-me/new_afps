@@ -21,6 +21,9 @@ export interface IAssociation extends mongoose.Document {
   monthlyFeeCents: number;
   /** Dia do mês em que a mensalidade vence (1 a 28, vale para todo mês). */
   dueDay: number;
+  /** Valores padrão das multas por cartão, em centavos (0 = sem padrão). */
+  yellowCardFeeCents: number;
+  redCardFeeCents: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -84,6 +87,16 @@ const associationSchema = new mongoose.Schema<IAssociation>(
       default: 10,
       min: 1,
       max: 28,
+    },
+    yellowCardFeeCents: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    redCardFeeCents: {
+      type: Number,
+      default: 0,
+      min: 0,
     },
   },
   {

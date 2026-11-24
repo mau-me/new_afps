@@ -88,7 +88,7 @@ export async function deleteTransaction(id: string): Promise<ActionResult> {
     _id: parsedId.data,
     ...activeFilter,
   })
-    .select('monthlyId')
+    .select('monthlyId cardId')
     .lean();
 
   if (!transaction) {
@@ -104,10 +104,22 @@ export async function deleteTransaction(id: string): Promise<ActionResult> {
         'Este lançamento veio de uma mensalidade. Desfaça o pagamento na página de Mensalidades.',
     };
   }
+  if (transaction.cardId) {
+    return {
+      ok: false,
+      message:
+        'Este lançamento veio do pagamento de um cartão. Desfaça o pagamento na página de Cartões.',
+    };
+  }
 
   // Condição repetida no update: protege contra exclusões simultâneas.
   const result = await Transaction.updateOne(
-    { _id: parsedId.data, monthlyId: { $exists: false }, ...activeFilter },
+    {
+      _id: parsedId.data,
+      monthlyId: { $exists: false },
+      cardId: { $exists: false },
+      ...activeFilter,
+    },
     { $set: { deletedAt: new Date(), deletedBy: session.user.id } }
   );
   if (result.modifiedCount === 0) {

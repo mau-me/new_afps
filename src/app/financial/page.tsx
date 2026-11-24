@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
 import { FilterTabs } from '@/components/filter-tabs';
+import { FinancialTabs } from '@/components/financial-tabs';
 import { MonthNav } from '@/components/month-nav';
 import { Navbar } from '@/components/navbar';
 import { ScoreCell, ScoreStrip } from '@/components/score-strip';
@@ -65,6 +66,8 @@ export default async function CashPage({
     <div className='min-h-screen'>
       <Navbar />
       <main className='mx-auto max-w-6xl px-4 py-8 md:py-12'>
+        <FinancialTabs active='caixa' />
+
         <header className='mb-8 flex flex-wrap items-end justify-between gap-4'>
           <div>
             <h1 className='heading text-xl md:text-2xl'>Caixa</h1>
@@ -117,8 +120,8 @@ export default async function CashPage({
             </h2>
             <p className='mt-1 max-w-prose text-muted-foreground'>
               Registre aqui o que entrou e o que saiu do caixa: arbitragem,
-              material, campo, doações. Os pagamentos de mensalidade entram
-              sozinhos.
+              material, campo, doações. Os pagamentos de mensalidades e de
+              cartões entram sozinhos.
             </p>
             <Button asChild className='mt-6'>
               <Link href='/financial/transactions/new'>
@@ -181,7 +184,13 @@ export default async function CashPage({
                         </TableCell>
                         <TableCell className='pr-6'>
                           <div className='flex justify-end'>
-                            {row.isAutomatic ? (
+                            {row.fromCard ? (
+                              <Button variant='ghost' size='sm' asChild>
+                                <Link href='/financial/cards?status=pago'>
+                                  Ver cartão
+                                </Link>
+                              </Button>
+                            ) : row.isAutomatic ? (
                               <Button variant='ghost' size='sm' asChild>
                                 <Link
                                   href={`/financial/monthly?month=${row.monthlyMonth ?? month}&status=pago`}

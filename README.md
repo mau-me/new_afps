@@ -54,9 +54,14 @@ Ninguém se cadastra sem autorização:
 2. O jogador cria sua conta em **Cadastrar-se** usando o mesmo CPF; a conta é
    vinculada automaticamente à ficha.
 
-## Mensalidades
+## Financeiro
 
-Em **Mensalidades** (só a comissão):
+O menu **Financeiro** (só a comissão) tem três abas: Caixa, Mensalidades e
+Cartões.
+
+### Mensalidades
+
+Em **Mensalidades**:
 
 1. Defina o valor único da mensalidade e o dia de vencimento (1 a 28).
 2. Gere as mensalidades do mês: uma para cada jogador ativo. Gerar de novo é
@@ -68,9 +73,9 @@ Em **Mensalidades** (só a comissão):
 Uma mensalidade fica **vencida** a partir do dia seguinte ao vencimento, no
 horário da Bahia. Mudar o valor só afeta as mensalidades geradas depois.
 
-## Caixa
+### Caixa
 
-Em **Caixa** (só a comissão) ficam todas as entradas e saídas do mês, com o
+Em **Caixa** ficam todas as entradas e saídas do mês, com o
 saldo do mês e o **saldo em caixa** acumulado até o fim do mês escolhido.
 
 - **Novo lançamento:** entrada ou saída, categoria, valor, data e descrição.
@@ -78,6 +83,17 @@ saldo do mês e o **saldo em caixa** acumulado até o fim do mês escolhido.
   podem ser desfeitos na página de Mensalidades.
 - **Excluir** um lançamento manual o tira do caixa, mas ele fica guardado no
   banco com quem excluiu e quando (trilha de auditoria).
+
+### Cartões
+
+Em **Cartões** ficam as multas por cartão amarelo e vermelho.
+
+- **Registrar cartão:** jogador, cor, valor, data do jogo e uma observação
+  opcional. Também dá para registrar a partir da ficha do jogador.
+- A multa fica **pendente** até ser paga. Ao registrar o pagamento, a entrada
+  (categoria "Multa") vai para o caixa na mesma transação. "Desfazer" reverte.
+- Só multas pendentes podem ser excluídas (para registros feitos por engano).
+- O jogador vê os próprios cartões em **Minha área**.
 
 ## Estrutura
 

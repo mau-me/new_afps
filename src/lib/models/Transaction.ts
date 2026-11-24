@@ -14,6 +14,8 @@ export interface ITransaction extends mongoose.Document {
   receipt?: string;
   /** Mensalidade que originou esta entrada, se houver. */
   monthlyId?: mongoose.Types.ObjectId;
+  /** Cartão (multa) que originou esta entrada, se houver. */
+  cardId?: mongoose.Types.ObjectId;
   /** Quem registrou a transação (auditoria / prestação de contas). */
   createdBy: mongoose.Types.ObjectId;
   /** Exclusão lógica: o lançamento some do caixa, mas fica no banco. */
@@ -61,6 +63,10 @@ const transactionSchema = new mongoose.Schema<ITransaction>(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Monthly',
     },
+    cardId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Card',
+    },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
@@ -82,6 +88,7 @@ const transactionSchema = new mongoose.Schema<ITransaction>(
 
 transactionSchema.index({ deletedAt: 1, date: -1 });
 transactionSchema.index({ monthlyId: 1 });
+transactionSchema.index({ cardId: 1 });
 
 /** Filtro de lançamentos ativos (não excluídos). Use em toda consulta. */
 export const activeFilter = { deletedAt: null } as const;

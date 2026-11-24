@@ -2,25 +2,37 @@
 
 import { useState, useTransition } from 'react';
 import { Loader2 } from 'lucide-react';
-import { registerPayment, undoPayment } from '@/lib/actions/monthly';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import { todayISO } from '@/lib/months';
 
-/** Registrar pagamento (com a data em que foi pago) ou desfazer. */
-export function PaymentActions({
-  monthlyId,
-  status,
-  nickname,
+type Result = { ok: boolean; message: string };
+
+/**
+ * Registrar pagamento (com a data em que foi pago) ou desfazer.
+ * `pay` e `undo` são server actions já ligadas ao item (via .bind).
+ */
+export function PaymentControls({
+  id,
+  isPaid,
+  pay,
+  undo,
+  dateLabel,
+  undoConfirm,
 }: {
-  monthlyId: string;
-  status: 'pago' | 'em_aberto';
-  nickname: string;
+  id: string;
+  isPaid: boolean;
+  pay: (paymentDate: string) => Promise<Result>;
+  undo: () => Promise<Result>;
+  /** Rótulo acessível do campo de data, ex.: "Data do pagamento de Carlão". */
+  dateLabel: string;
+  /** Pergunta de confirmação antes de desfazer. */
+  undoConfirm: string;
 }) {
   const [isPending, startTransition] = useTransition();
   const [date, setDate] = useState(() => todayISO());
 
-  const run = (action: () => Promise<{ ok: boolean; message: string }>) =>
+  const run = (action: () => Promise<Result>) =>
     startTransition(async () => {
       const result = await action();
       toast({
@@ -29,20 +41,14 @@ export function PaymentActions({
       });
     });
 
-  if (status === 'pago') {
+  if (isPaid) {
     return (
       <Button
         variant='ghost'
         size='sm'
         disabled={isPending}
         onClick={() => {
-          if (
-            window.confirm(
-              `Desfazer o pagamento de ${nickname}? A entrada no caixa também será removida.`
-            )
-          ) {
-            run(() => undoPayment(monthlyId));
-          }
+          if (window.confirm(undoConfirm)) run(undo);
         }}
       >
         {isPending && <Loader2 className='animate-spin' />}
@@ -56,14 +62,14 @@ export function PaymentActions({
       className='flex items-center gap-2'
       onSubmit={(e) => {
         e.preventDefault();
-        run(() => registerPayment(monthlyId, date));
+        run(() => pay(date));
       }}
     >
-      <label className='sr-only' htmlFor={`paid-at-${monthlyId}`}>
-        Data do pagamento de {nickname}
+      <label className='sr-only' htmlFor={`paid-at-${id}`}>
+        {dateLabel}
       </label>
       <input
-        id={`paid-at-${monthlyId}`}
+        id={`paid-at-${id}`}
         type='date'
         value={date}
         max={todayISO()}

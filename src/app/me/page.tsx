@@ -1,5 +1,7 @@
 import type React from 'react';
+import { CardList } from '@/components/card-list';
 import { MonthlyHistory } from '@/components/monthly-history';
+import { listPlayerCards } from '@/lib/data/cards';
 import { Navbar } from '@/components/navbar';
 import {
   OverdueDetail,
@@ -51,7 +53,12 @@ export default async function MePage() {
     );
   }
 
-  const finance = await getPlayerFinancials(player.id);
+  const [finance, cards] = await Promise.all([
+    getPlayerFinancials(player.id),
+    listPlayerCards(player.id),
+  ]);
+  const pendingCards = cards.filter((c) => c.status === 'pendente');
+  const pendingCardsCents = pendingCards.reduce((s, c) => s + c.amountCents, 0);
 
   return (
     <div className='min-h-screen'>
@@ -89,7 +96,7 @@ export default async function MePage() {
           </Alert>
         )}
 
-        <ScoreStrip label='Minha situação' columns={3} className='mb-8'>
+        <ScoreStrip label='Minha situação' columns={4} className='mb-8'>
           <ScoreCell
             value={formatCents(finance.openCents)}
             label='A pagar'
@@ -107,6 +114,12 @@ export default async function MePage() {
             label='Pagas'
             detail='Mensalidades quitadas'
           />
+          <ScoreCell
+            value={formatCents(pendingCardsCents)}
+            label='Multas'
+            detail={`${pendingCards.length} ${pendingCards.length === 1 ? 'cartão' : 'cartões'} a pagar`}
+            tone={pendingCardsCents > 0 ? 'negative' : 'default'}
+          />
         </ScoreStrip>
 
         <div className='grid gap-8 lg:grid-cols-3'>
@@ -115,6 +128,15 @@ export default async function MePage() {
             <MonthlyHistory
               monthlies={finance.monthlies}
               emptyMessage='Nenhuma mensalidade gerada para você ainda.'
+            />
+            <h2 className='heading border-t px-6 pt-6 pb-2 text-lg'>
+              Meus cartões
+            </h2>
+            <CardList
+              cards={cards}
+              showPlayer={false}
+              manage={false}
+              emptyMessage='Nenhum cartão. Siga assim!'
             />
           </section>
 
